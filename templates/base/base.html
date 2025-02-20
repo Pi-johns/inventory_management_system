@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Dashboard{% endblock %}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body class="bg-gray-100">
+
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <nav class="w-64 bg-gray-800 text-white fixed h-full p-4">
+            <h2 class="text-xl font-bold mb-4">Shop Management</h2>
+
+            {% if user.role == "superadmin" %}
+            <h3 class="text-sm uppercase text-gray-400">Admin Panel</h3>
+            <ul class="mt-2">
+                <li><a href="{% url 'dashboard:superadmin_dashboard' %}"
+                        class="block py-2 px-4 hover:bg-gray-700">Dashboard</a></li>
+                </li>
+                <li><a href="{% url 'shops:shop_list' %}" class="block py-2 px-4 hover:bg-gray-700">Manage Shops</a>
+                </li>
+                <li><a href="{% url 'inventory:product_list' %}" class="block py-2 px-4 hover:bg-gray-700">Stock
+                        Overview</a></li>
+                <li><a href="{% url 'sales:sales_dashboard' %}" class="block py-2 px-4 hover:bg-gray-700">Sales
+                        Reports</a>
+                </li>
+            </ul>
+            {% elif user.role == "manager" %}
+            <h3 class="text-sm uppercase text-gray-400">Manager Panel</h3>
+            <ul class="mt-2">
+                <li><a href="{% url 'dashboard:manager_dashboard' %}"
+                        class="block py-2 px-4 hover:bg-gray-700">Dashboard</a>
+                </li>
+                <li><a href="{% url 'shops:shop_list' %}" class="block py-2 px-4 hover:bg-gray-700">Manage Shops</a>
+                </li>
+                <li><a href="{% url 'inventory:add_product' %}" class="block py-2 px-4 hover:bg-gray-700">Add Stock</a>
+                </li>
+                <li><a href="{% url 'reports:profit_analysis' %}" class="block py-2 px-4 hover:bg-gray-700">Profit
+                        Reports</a></li>
+            </ul>
+            {% elif user.role == "seller" %}
+            <h3 class="text-sm uppercase text-gray-400">Seller Panel</h3>
+            <ul class="mt-2">
+                <li><a href="{% url 'dashboard:seller_dashboard' %}"
+                        class="block py-2 px-4 hover:bg-gray-700">Dashboard</a>
+                </li>
+                <li><a href="{% url 'sales:record_sale' %}" class="block py-2 px-4 hover:bg-gray-700">Record Sale</a>
+                </li>
+                <li><a href="{% url 'sales:recordcredit_sale' %}" class="block py-2 px-4 hover:bg-gray-700">Credit
+                        Sales</a>
+                </li>
+            </ul>
+            {% endif %}
+
+            <a href="{% url 'accounts:logout' %}" class="block py-2 px-4 mt-4 bg-red-500 text-center">Logout</a>
+        </nav>
+
+        <!-- Main Content -->
+        <div class="flex-1 ml-64 p-6">
+            {% block content %}
+            {% endblock %}
+        </div>
+    </div>
+
+</body>
+
+</html>

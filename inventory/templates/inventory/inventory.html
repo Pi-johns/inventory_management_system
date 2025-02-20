@@ -1,0 +1,85 @@
+{% extends 'base/base.html' %}
+
+{% block content %}
+<div class="flex h-screen bg-gray-100">
+    <!-- Sidebar -->
+    <nav class="w-64 bg-gray-900 text-white fixed h-full">
+        <div class="p-5 text-xl font-bold border-b border-gray-700">
+            Inventory Management
+        </div>
+        <ul class="mt-5">
+            <li class="py-2 px-5 hover:bg-gray-700">
+                {% if request.user.is_superuser %}
+                <a href="{% url 'dashboard:superadmin_dashboard' %}">🏠 Dashboard Home</a>
+                {% elif request.user.groups.all.0.name == 'Manager' %}
+                <a href="{% url 'dashboard:manager_dashboard' %}">🏠 Dashboard Home</a>
+                {% else %}
+
+                {% endif %}
+            </li>
+            {% if request.user.role == 'manager' or request.user.role == 'superadmin' %}
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="{% url 'inventory:add_product' %}">➕ Add Product</a>
+            </li>
+            {% endif %}
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="{% url 'inventory:product_list' %}">📦 View Products</a>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- Content Area -->
+    <div class="ml-64 flex-1 p-10">
+        <h1 class="text-3xl font-bold">Inventory Management</h1>
+
+        <!-- Low Stock Alerts -->
+        <div class="bg-red-100 p-5 mt-5 border-l-4 border-red-500 text-red-700">
+            {% if low_stock_products|length == 0 %} {% endif %}
+            <h2 class="font-bold">⚠️ Low Stock Alerts</h2>
+            <ul>
+                {% for product in low_stock_products %}
+                <li>{{ product.name }} - Only {{ product.stock }} left</li>
+                {% endfor %}
+            </ul>
+        </div>
+
+
+        <!-- Product List -->
+        <div class="bg-white p-5 mt-5 shadow rounded-lg">
+            <h2 class="text-lg font-semibold">Product List</h2>
+            <table class="w-full mt-3 border-collapse border border-gray-300">
+                <thead>
+                    <tr class="bg-gray-200">
+                        <th class="border border-gray-300 px-4 py-2">Name</th>
+                        <th class="border border-gray-300 px-4 py-2">Stock</th>
+                        <th class="border border-gray-300 px-4 py-2">Price</th>
+                        {% if request.user.role == 'manager' or request.user.role == 'superadmin' %}
+                        <th class="border border-gray-300 px-4 py-2">Actions</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for product in products %}
+                    <tr>
+                        <td class="border border-gray-300 px-4 py-2">{{ product.name }}</td>
+                        <td class="border border-gray-300 px-4 py-2">{{ product.stock }}</td>
+                        <td class="border border-gray-300 px-4 py-2">${{ product.price }}</td>
+                        {% if request.user.role == 'manager' or request.user.role == 'superadmin' %}
+                        <td class="border border-gray-300 px-4 py-2">
+                            <a href="{% url 'inventory:update_product' product.id %}" class="text-blue-600">✏️ Edit</a>
+                            |
+                            <a href="{% url 'inventory:delete_product' product.id %}" class="text-red-600">🗑 Delete</a>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center py-2">No products available.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

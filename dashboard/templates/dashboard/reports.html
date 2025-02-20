@@ -1,0 +1,150 @@
+{% extends 'base/base.html' %}
+
+{% block content %}
+<div class="p-6 bg-white shadow rounded-lg">
+    <h2 class="text-xl font-semibold mb-4">Reports Dashboard</h2>
+
+    <!-- Filters Section -->
+    <div class="mb-4 flex space-x-4">
+        <input type="date" id="start_date" class="border p-2 rounded" placeholder="Start Date">
+        <input type="date" id="end_date" class="border p-2 rounded" placeholder="End Date">
+        <select id="report_filter" class="border p-2 rounded">
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+        </select>
+        <button onclick="applyFilters()" class="bg-blue-600 text-white px-4 py-2 rounded">Apply</button>
+        <button onclick="exportReport()" class="bg-green-600 text-white px-4 py-2 rounded">Export CSV</button>
+    </div>
+
+    <!-- Sales Report Section -->
+    <div class="mb-6">
+        <h3 class="text-lg font-medium mb-2">Sales Reports</h3>
+        <canvas id="salesChart"></canvas>
+    </div>
+
+    <!-- Profit Analysis Section -->
+    <div class="mb-6">
+        <h3 class="text-lg font-medium mb-2">Profit Analysis</h3>
+        <canvas id="profitChart"></canvas>
+    </div>
+
+    <!-- Top Selling Products -->
+    <div class="mb-6">
+        <h3 class="text-lg font-medium mb-2">Top Selling Products</h3>
+        <ul id="topProductsList" class="list-disc pl-6"></ul>
+    </div>
+
+    <!-- Least Selling Products -->
+    <div class="mb-6">
+        <h3 class="text-lg font-medium mb-2">Least Selling Products</h3>
+        <ul id="leastProductsList" class="list-disc pl-6"></ul>
+    </div>
+
+    <!-- Credit Sales Summary -->
+    <div>
+        <h3 class="text-lg font-medium mb-2">Credit Sales Summary</h3>
+        <table class="w-full border">
+            <thead>
+                <tr class="bg-gray-200">
+                    <th class="border p-2">Customer</th>
+                    <th class="border p-2">Amount Due</th>
+                    <th class="border p-2">Status</th>
+                </tr>
+            </thead>
+            <tbody id="creditSalesTable">
+                <!-- Data will be injected here -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        fetchReportsData();
+    });
+
+    function fetchReportsData() {
+        fetch("{% url 'reports:data' %}")
+            .then(response => response.json())
+            .then(data => {
+                updateCharts(data);
+                updateTopProducts(data.top_selling);
+                updateLeastProducts(data.least_selling);
+                updateCreditSales(data.credit_sales);
+            });
+    }
+
+    function updateCharts(data) {
+        const salesCtx = document.getElementById('salesChart').getContext('2d');
+        new Chart(salesCtx, {
+            type: 'bar',
+            data: {
+                labels: data.sales_dates,
+                datasets: [{
+                    label: 'Sales',
+                    data: data.sales_amounts,
+                    backgroundColor: 'blue'
+                }]
+            }
+        });
+
+        const profitCtx = document.getElementById('profitChart').getContext('2d');
+        new Chart(profitCtx, {
+            type: 'line',
+            data: {
+                labels: data.sales_dates,
+                datasets: [{
+                    label: 'Profit',
+                    data: data.profit_amounts,
+                    borderColor: 'green',
+                    fill: false
+                }]
+            }
+        });
+    }
+
+    function updateTopProducts(products) {
+        const list = document.getElementById("topProductsList");
+        list.innerHTML = "";
+        products.forEach(product => {
+            const li = document.createElement("li");
+            li.textContent = `${product.name} - ${product.sales_count} sales`;
+            list.appendChild(li);
+        });
+    }
+
+    function updateLeastProducts(products) {
+        const list = document.getElementById("leastProductsList");
+        list.innerHTML = "";
+        products.forEach(product => {
+            const li = document.createElement("li");
+            li.textContent = `${product.name} - ${product.sales_count} sales`;
+            list.appendChild(li);
+        });
+    }
+
+    function updateCreditSales(creditSales) {
+        const tableBody = document.getElementById("creditSalesTable");
+        tableBody.innerHTML = "";
+        creditSales.forEach(sale => {
+            const row = `<tr>
+                            <td class="border p-2">${sale.customer}</td>
+                            <td class="border p-2">${sale.amount_due}</td>
+                            <td class="border p-2">${sale.status}</td>
+                        </tr>`;
+            tableBody.innerHTML += row;
+        });
+    }
+
+    function exportReport() {
+        window.location.href = "{% url 'reports:export_csv' %}";
+    }
+
+    function applyFilters() {
+        // Filter logic (optional, backend filtering recommended)
+        fetchReportsData();
+    }
+</script>
+{% endblock %}

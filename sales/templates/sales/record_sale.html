@@ -1,0 +1,41 @@
+{% extends 'base/base.html' %}
+
+{% block content %}
+<div class="ml-64 flex-1 p-10">
+    <h1 class="text-3xl font-bold">Record New Sale</h1>
+
+    <div class="bg-white p-5 mt-5 shadow rounded-lg">
+        <form method="POST">
+            {% csrf_token %}
+            <label class="block">Product</label>
+            <select name="product" class="w-full border p-2 rounded-lg mb-3">
+                {% for product in products %}
+                <option value="{{ product.id }}">{{ product.name }} (Stock: {{ product.stock }})</option>
+                {% endfor %}
+            </select>
+
+            <label class="block">Quantity</label>
+            <input type="number" name="quantity" class="w-full border p-2 rounded-lg mb-3">
+
+            <label class="block">Selling Price</label>
+            <input type="number" name="price" step="0.01" class="w-full border p-2 rounded-lg mb-3">
+
+            <label class="block">Payment Type</label>
+            <select name="payment_type" class="w-full border p-2 rounded-lg mb-3">
+                <option value="cash">Cash</option>
+                <option value="credit">Credit</option>
+            </select>
+
+            <label class="block">Customer Name (For Credit Sales)</label>
+            <input type="text" name="customer_name" class="w-full border p-2 rounded-lg mb-3">
+
+            <label class="block">Customer Phone</label>
+            <input type="text" name="customer_phone" class="w-full border p-2 rounded-lg mb-3">
+
+            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                ✅ Save Sale
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,11 @@
+{% extends "base/base.html" %}
+{% block content %}
+<div class="container mx-auto p-6">
+    <h1 class="text-2xl font-bold mb-4">Create Manager</h1>
+    <form method="post" class="bg-white p-6 rounded shadow-md">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded">Create Manager</button>
+    </form>
+</div>
+{% endblock %}

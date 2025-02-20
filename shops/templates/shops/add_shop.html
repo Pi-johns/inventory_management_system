@@ -1,0 +1,38 @@
+{% extends "base/base.html" %}
+
+{% block content %}
+<div class="flex h-screen bg-gray-100">
+    <!-- Sidebar -->
+    <nav class="w-64 bg-gray-900 text-white fixed h-full">
+        <div class="p-5 text-xl font-bold border-b border-gray-700">
+            🏬 Shop Management
+        </div>
+        <ul class="mt-5 space-y-2">
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="{% url 'shops:shops_list' %}">📋 All Shops</a>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- Right Content Area -->
+    <div class="ml-64 flex-1 p-10 overflow-y-auto flex flex-col items-center justify-center">
+        <div class="bg-white p-8 shadow-lg rounded-lg w-full max-w-md">
+            <h1 class="text-2xl font-bold text-gray-800 mb-6">🏬 Add New Shop</h1>
+
+            <form method="POST" class="space-y-4">
+                {% csrf_token %}
+                <div class="space-y-2">
+                    {{ form.as_p }}
+                </div>
+                <button type="submit" class="bg-green-500 hover:bg-green-600 text-white px-5 py-2 rounded w-full">💾
+                    Save Shop</button>
+            </form>
+
+            <div class="mt-4 text-center">
+                <a href="{% url 'shops:shops_list' %}"
+                    class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded inline-block">⬅️ Back to Shops</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

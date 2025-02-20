@@ -1,0 +1,48 @@
+{% extends 'base/base.html' %}
+
+{% block content %}
+<div class="flex h-screen bg-gray-100">
+    <!-- Sidebar -->
+    <nav class="w-64 bg-gray-900 text-white fixed h-full">
+        <div class="p-5 text-xl font-bold border-b border-gray-700">
+            Manager Dashboard
+        </div>
+        <ul class="mt-5">
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="{% url 'dashboard:manager_dashboard' %}">🏠 Dashboard Home</a>
+            </li>
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="{% url 'dashboard:seller_list' %}">👤 Manage Sellers</a>
+            </li>
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="{% url 'shops:shop_list' %}">🏪 Manage Shops</a>
+            </li>
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="{% url 'sales:sales_dashboard' %}">🛒 Manage sales</a>
+            </li>
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="{% url 'inventory:product_list' %}">📦 Inventory management</a>
+            </li>
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="{% url 'reports:sales_report' %}">📊 Sales Reports</a>
+            </li>
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="{% url 'notifications:get_notifications' %}">🔔 Notifications ({{ notifications.count }})</a>
+            </li>
+            <li class="py-2 px-5 hover:bg-red-600">
+                <a href="{% url 'accounts:logout' %}">🚪 Logout</a>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- Content Area -->
+    <div class="ml-64 flex-1 p-10">
+        <h1 class="text-3xl font-bold">Welcome, {{ request.user.username }}</h1>
+
+        <div class="bg-white p-5 mt-5 shadow rounded-lg">
+            <h2 class="text-lg font-semibold">Sales & Inventory Trends</h2>
+            <canvas id="managerChart"></canvas>
+        </div>
+    </div>
+</div>
+{% endblock %}

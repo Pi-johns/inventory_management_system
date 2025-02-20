@@ -1,0 +1,83 @@
+{% extends 'base/base.html' %}
+
+{% block content %}
+<div class="flex h-screen bg-gray-100">
+    <!-- Sidebar -->
+    <nav class="w-64 bg-gray-900 text-white fixed h-full">
+        <div class="p-5 text-xl font-bold border-b border-gray-700">
+            Seller Dashboard
+        </div>
+        <ul class="mt-5">
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="">🏠 Dashboard Home</a>
+            </li>
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="{% url 'record_sale' %}">🛒 Record Sale</a>
+            </li>
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="{% url 'credit_sales' %}">💳 Credit Sales</a>
+            </li>
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="{% url 'notifications' %}">🔔 Notifications ({{ notifications.count }})</a>
+            </li>
+            <li class="py-2 px-5 hover:bg-red-600">
+                <a href="{% url 'logout' %}">🚪 Logout</a>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- Content Area -->
+    <div class="ml-64 flex-1 p-10">
+        <h1 class="text-3xl font-bold">Welcome, {{ request.user.username }}</h1>
+
+        <!-- Sales Summary -->
+        <div class="grid grid-cols-3 gap-5 mt-5">
+            <div class="bg-white p-5 shadow rounded-lg">
+                <h2 class="text-lg font-semibold">Today's Sales</h2>
+                <p class="text-2xl font-bold text-blue-600">${{ today_sales }}</p>
+            </div>
+            <div class="bg-white p-5 shadow rounded-lg">
+                <h2 class="text-lg font-semibold">Pending Credit</h2>
+                <p class="text-2xl font-bold text-red-600">${{ pending_credit }}</p>
+            </div>
+            <div class="bg-white p-5 shadow rounded-lg">
+                <h2 class="text-lg font-semibold">Products Sold</h2>
+                <p class="text-2xl">{{ products_sold }}</p>
+            </div>
+        </div>
+
+        <!-- Recent Sales -->
+        <div class="bg-white p-5 mt-5 shadow rounded-lg">
+            <h2 class="text-lg font-semibold">Recent Sales</h2>
+            <ul>
+                {% for sale in recent_sales %}
+                <li class="border-b py-2">{{ sale.product.name }} - ${{ sale.total_price }} ({{ sale.date }})</li>
+                {% empty %}
+                <li>No sales recorded yet.</li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <!-- Sales Chart -->
+        <div class="bg-white p-5 mt-5 shadow rounded-lg">
+            <h2 class="text-lg font-semibold">Sales Trends</h2>
+            <canvas id="sellerSalesChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<script>
+    var ctx = document.getElementById('sellerSalesChart').getContext('2d');
+    var salesChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: {{ sales_trends.labels | safe }},
+    datasets: [{
+        label: 'Sales',
+        data: {{ sales_trends.data | safe }},
+        backgroundColor: 'blue'
+            }]
+        }
+    });
+</script>
+{% endblock %}

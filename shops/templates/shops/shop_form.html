@@ -1,0 +1,47 @@
+{% extends 'base/base.html' %}
+
+{% block content %}
+<div class="flex h-screen bg-gray-100">
+    <!-- Sidebar -->
+    <nav class="w-64 bg-gray-900 text-white fixed h-full">
+        <div class="p-5 text-xl font-bold border-b border-gray-700">
+            🏬 Shop Management
+        </div>
+        <ul class="mt-5 space-y-2">
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="{% url 'shops:shops_list' %}">📋 All Shops</a>
+            </li>
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="#create_shop">➕ Create/Edit Shop</a>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- Right Content Area -->
+    <div class="ml-64 flex-1 p-10 overflow-y-auto">
+        <h1 class="text-3xl font-bold mb-6">🏬 Create / Edit Shop</h1>
+
+        <div class="bg-white p-5 shadow rounded-lg w-full max-w-lg">
+            <form method="POST" class="space-y-4">
+                {% csrf_token %}
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Shop Name</label>
+                    {{ form.name }}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Location</label>
+                    {{ form.location }}
+                </div>
+
+                <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-5 py-2 rounded w-full">💾
+                    Save</button>
+            </form>
+
+            <div class="mt-4">
+                <a href="{% url 'shops:shops_list' %}"
+                    class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded inline-block">⬅️ Back to Shops</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

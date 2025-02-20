@@ -1,0 +1,268 @@
+{% extends 'base/base.html' %}
+
+{% block content %}
+<div class="flex h-screen bg-gray-100">
+    <!-- Sidebar -->
+    <nav class="w-64 bg-gray-900 text-white fixed h-full">
+        <div class="p-5 text-xl font-bold border-b border-gray-700">
+            📊 Reports & Analytics
+        </div>
+        <ul class="mt-5 space-y-2">
+            <!-- Dashboard Home (dynamic redirection handled in the view or via JS) -->
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="">🏠 Dashboard Home</a>
+            </li>
+            <!-- Existing links -->
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="#sales_reports">📈 Sales Reports</a>
+            </li>
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="#profit_analysis">💰 Profit Analysis</a>
+            </li>
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="#accounting_reports">📑 Accounting Reports</a>
+            </li>
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="#product_performance">📦 Product Performance</a>
+            </li>
+            <!-- New links -->
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="#credit_sales_report">💳 Credit Sales Report</a>
+            </li>
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="#daily_profits">🕒 Daily Profits</a>
+            </li>
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="#shop_analysis">🏪 Shop Analysis</a>
+            </li>
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="#summarized_reports">📤 Summarized Reports</a>
+            </li>
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="#balance_sheet">📝 Balance Sheet</a>
+            </li>
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="#current_stock_cost">💵 Current Stock Cost</a>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- Content Area -->
+    <div class="ml-64 flex-1 p-10 space-y-10">
+        <h1 class="text-3xl font-bold">📊 Reports & Analytics</h1>
+
+        <!-- Filters Section -->
+        <div class="bg-white p-5 shadow rounded-lg">
+            <form method="GET">
+                <div>
+                    <label class="block font-semibold">📅 Filter by Date:</label>
+                    <input type="date" name="start_date" class="border p-2 rounded-lg">
+                    <input type="date" name="end_date" class="border p-2 rounded-lg">
+                </div>
+                <div class="mt-3">
+                    <label class="block font-semibold">🛒 Filter by Seller:</label>
+                    <select name="seller" class="border p-2 rounded-lg">
+                        <option value="">All Sellers</option>
+                        {% for seller in sellers %}
+                        <option value="{{ seller.id }}">{{ seller.username }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 mt-3">
+                    🔍 Apply Filters
+                </button>
+            </form>
+        </div>
+
+        <!-- Sales Reports Section -->
+        <section id="sales_reports" class="bg-white p-5 shadow rounded-lg">
+            <h2 class="text-lg font-semibold mb-2">📈 Sales Reports</h2>
+            <table class="w-full mt-3 border-collapse border border-gray-300">
+                <thead>
+                    <tr class="bg-gray-200">
+                        <th class="border border-gray-300 px-4 py-2">📅 Date</th>
+                        <th class="border border-gray-300 px-4 py-2">🛒 Seller</th>
+                        <th class="border border-gray-300 px-4 py-2">💵 Total Sales</th>
+                        <th class="border border-gray-300 px-4 py-2">💰 Profit</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for report in sales_reports %}
+                    <tr>
+                        <td class="border border-gray-300 px-4 py-2">{{ report.date }}</td>
+                        <td class="border border-gray-300 px-4 py-2">{{ report.seller.username }}</td>
+                        <td class="border border-gray-300 px-4 py-2">Kes{{ report.total_sales }}</td>
+                        <td class="border border-gray-300 px-4 py-2">Kes{{ report.profit }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center py-2">No reports available.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Sales Trends Chart Section -->
+        <section id="sales_trends" class="bg-white p-5 shadow rounded-lg">
+            <h2 class="text-lg font-semibold">📊 Sales Trends</h2>
+            <canvas id="salesChart"></canvas>
+        </section>
+
+        <!-- Profit Analysis Section -->
+        <section id="profit_analysis" class="bg-white p-5 shadow rounded-lg">
+            <h2 class="text-lg font-semibold">💰 Profit Analysis</h2>
+            <!-- Display detailed profit analysis data -->
+            <div>
+                <p>Net Profit (including credit sales): Kes {{ net_profit }}</p>
+                <p>Profit from Paid Sales: Kes {{ paid_profit }}</p>
+            </div>
+        </section>
+
+        <!-- Credit Sales Report Section -->
+        <section id="credit_sales_report" class="bg-white p-5 shadow rounded-lg">
+            <h2 class="text-lg font-semibold">💳 Credit Sales Report</h2>
+            <div>
+                <h3 class="font-semibold">Profit for Credit Sales: Kes {{ credit_profit }}</h3>
+                <table class="w-full mt-3 border-collapse border border-gray-300">
+                    <thead>
+                        <tr class="bg-gray-200">
+                            <th class="border px-4 py-2">Customer</th>
+                            <th class="border px-4 py-2">Amount Due</th>
+                            <th class="border px-4 py-2">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for credit in credit_sales %}
+                        <tr>
+                            <td class="border px-4 py-2">{{ credit.customer }}</td>
+                            <td class="border px-4 py-2">Kes{{ credit.amount_due }}</td>
+                            <td class="border px-4 py-2">{{ credit.status }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="3" class="text-center py-2">No credit sales data available.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Daily Profits Section -->
+        <section id="daily_profits" class="bg-white p-5 shadow rounded-lg">
+            <h2 class="text-lg font-semibold">🕒 Daily Profits</h2>
+            <div>
+                <p>Net Profit (including credit sales): Kes {{ daily_net_profit }}</p>
+                <p>Profit from Paid Sales: Kes {{ daily_paid_profit }}</p>
+            </div>
+        </section>
+
+        <!-- Shop Analysis Section -->
+        <section id="shop_analysis" class="bg-white p-5 shadow rounded-lg">
+            <h2 class="text-lg font-semibold">🏪 Shop Analysis</h2>
+            <div>
+                {% for shop in shop_analysis %}
+                <div class="border p-3 my-2 rounded">
+                    <h3 class="font-semibold">Shop: {{ shop.name }}</h3>
+                    <p>Total Sales: Kes {{ shop.total_sales }}</p>
+                    <p>Total Profit: Kes {{ shop.total_profit }}</p>
+                    <p>Credit Sales: Kes {{ shop.credit_sales }}</p>
+                </div>
+                {% endfor %}
+                <h3 class="mt-4 font-bold">Best Selling Shops:</h3>
+                <ul class="list-disc pl-6">
+                    {% for shop in best_selling_shops %}
+                    <li>{{ shop.name }} - Sales: Kes {{ shop.total_sales }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </section>
+
+        <!-- Summarized Reports Section -->
+        <section id="summarized_reports" class="bg-white p-5 shadow rounded-lg">
+            <h2 class="text-lg font-semibold">📤 Summarized Reports</h2>
+            <div>
+                <p>A summary of all reports: Total Sales, Profit, Credit Sales, and more.</p>
+                <!-- Additional summary details here -->
+            </div>
+            <div class="mt-4">
+                <a href="{% url 'reports:export_sales_csv' %}"
+                    class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                    📄 Export CSV
+                </a>
+                <a href="{% url 'reports:export_sales_pdf' %}"
+                    class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 ml-3">
+                    📑 Export PDF
+                </a>
+            </div>
+        </section>
+
+        <!-- Balance Sheet Section -->
+        <section id="balance_sheet" class="bg-white p-5 shadow rounded-lg">
+            <h2 class="text-lg font-semibold">📝 Balance Sheet</h2>
+            <div>
+                <p>Total Assets: Kes {{ total_assets }}</p>
+                <p>Total Liabilities: Kes {{ total_liabilities }}</p>
+                <p>Net Worth: Kes {{ net_worth }}</p>
+                <!-- More detailed balance sheet info as needed -->
+            </div>
+            <div class="mt-4">
+                <a href="{% url 'reports:export_balance_csv' %}"
+                    class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                    📄 Export CSV
+                </a>
+                <a href="{% url 'reports:export_balance_pdf' %}"
+                    class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 ml-3">
+                    📑 Export PDF
+                </a>
+            </div>
+        </section>
+
+        <!-- Current Stock Cost Section -->
+        <section id="current_stock_cost" class="bg-white p-5 shadow rounded-lg">
+            <h2 class="text-lg font-semibold">💵 Current Stock Cost</h2>
+            <div>
+                <p>Today's Stock Cost Converted to Cash: Kes {{ current_stock_cash }}</p>
+                <p>Total Stock Cost Remaining: Kes {{ remaining_stock_cost }}</p>
+            </div>
+        </section>
+    </div>
+</div>
+
+<!-- Chart.js for Sales Trends -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    var ctx = document.getElementById('salesChart').getContext('2d');
+    var salesChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: {{ sales_dates| safe }},
+    datasets: [{
+        label: 'Sales Trends',
+        data: {{ sales_values| safe }},
+        borderColor: 'rgb(75, 192, 192)',
+        borderWidth: 2,
+        fill: false
+            }]
+        },
+    options: {
+        responsive: true,
+            maintainAspectRatio: false,
+                scales: {
+            y: { beginAtZero: true }
+        }
+    }
+    });
+
+    // Smooth scrolling using JavaScript
+    document.querySelectorAll('nav a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            document.querySelector(this.getAttribute('href')).scrollIntoView({
+                behavior: 'smooth'
+            });
+        });
+    });
+</script>
+{% endblock %}

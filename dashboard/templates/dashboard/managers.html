@@ -1,0 +1,38 @@
+{% extends "base/base.html" %}
+{% block content %}
+<div class="container mx-auto p-6">
+    <h1 class="text-2xl font-bold mb-4">Manage Managers</h1>
+    <a href="{% url 'dashboard:create_manager' %}" class="bg-green-500 text-white px-4 py-2 rounded">➕ Add Manager</a>
+
+    <table class="table-auto w-full mt-4 bg-white shadow-md">
+        <thead>
+            <tr class="bg-gray-800 text-white">
+                <th class="py-2 px-4 border">#</th>
+                <th class="py-2 px-4 border">Name</th>
+                <th class="py-2 px-4 border">Email</th>
+                <th class="py-2 px-4 border">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for manager in managers %}
+            <tr class="hover:bg-gray-200">
+                <td class="py-2 px-4 border">{{ forloop.counter }}</td>
+                <td class="py-2 px-4 border">{{ manager.username }}</td>
+                <td class="py-2 px-4 border">{{ manager.email }}</td>
+                <td class="py-2 px-4 border text-center">
+                    <a href="{% url 'dashboard:edit_manager' manager.id %}"
+                        class="bg-blue-500 text-white px-3 py-1 rounded">✏️ Edit</a>
+                    <a href="{% url 'dashboard:delete_manager' manager.id %}"
+                        class="bg-red-500 text-white px-3 py-1 rounded" onclick="return confirm('Are you sure?')">🗑️
+                        Delete</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" class="py-4 text-center text-gray-500">No managers found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

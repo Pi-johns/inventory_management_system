@@ -1,0 +1,106 @@
+{% extends 'base/base.html' %}
+
+{% block content %}
+<div class="flex h-screen bg-gray-100">
+    <!-- Sidebar -->
+    <nav class="w-64 bg-gray-900 text-white fixed h-full">
+        <div class="p-5 text-xl font-bold border-b border-gray-700">
+            Superadmin Dashboard
+        </div>
+        <ul class="mt-5">
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="{% url 'dashboard:superadmin_dashboard' %}">🏠 Dashboard Home</a>
+            </li>
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="{% url 'dashboard:manager_list' %}">👤 Manage Managers</a>
+            </li>
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="{% url 'dashboard:seller_list' %}">👤 Manage Sellers</a>
+            </li>
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="{% url 'shops:shop_list' %}">🏪 Manage Shops</a>
+            </li>
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="{% url 'inventory:product_list' %}">📦 Inventory Overview</a>
+            </li>
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="{% url 'reports:sales_report' %}">📊 Sales Reports</a>
+            </li>
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="{% url 'reports:profit_analysis' %}">💰 Profit Analysis</a>
+            </li>
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="{% url 'notifications:get_notifications' %}">🔔 Notifications ({{ notifications.count }})</a>
+            </li>
+            <li class="py-2 px-5 hover:bg-red-600">
+                <a href="{% url 'accounts:logout' %}">🚪 Logout</a>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- Content Area -->
+    <div class="ml-64 flex-1 p-10">
+        <h1 class="text-3xl font-bold">Welcome, Superadmin!</h1>
+
+        <!-- Dashboard Stats -->
+        <div class="grid grid-cols-4 gap-5 mt-5">
+            <div class="bg-white p-5 shadow rounded-lg">
+                <h2 class="text-lg font-semibold">Total Sales</h2>
+                <p class="text-2xl font-bold text-blue-600">KES{{ total_sales }}</p>
+            </div>
+            <div class="bg-white p-5 shadow rounded-lg">
+                <h2 class="text-lg font-semibold">Total Profit</h2>
+                <p class="text-2xl font-bold text-green-600">KES{{ total_profit }}</p>
+            </div>
+            <div class="bg-white p-5 shadow rounded-lg">
+                <h2 class="text-lg font-semibold">Top Product</h2>
+                <p class="text-xl">{{ top_selling_product.name }}</p>
+            </div>
+            <div class="bg-white p-5 shadow rounded-lg">
+                <h2 class="text-lg font-semibold">Shops Count</h2>
+                <p class="text-2xl">{{ shops.count }}</p>
+            </div>
+        </div>
+
+        <!-- Notifications -->
+        <div class="bg-white p-5 mt-5 shadow rounded-lg">
+            <h2 class="text-lg font-semibold">Latest Notifications</h2>
+            <ul>
+                {% for notification in notifications %}
+                <li class="border-b py-2">{{ notification.message }}</li>
+                {% empty %}
+                <li>No notifications available.</li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <!-- Sales & Profit Trends (Chart.js) -->
+        <div class="bg-white p-5 mt-5 shadow rounded-lg">
+            <h2 class="text-lg font-semibold">Sales & Profit Trends</h2>
+            <canvas id="salesChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Chart.js Integration
+    var ctx = document.getElementById('salesChart').getContext('2d');
+    var salesChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: {{ sales_trends.labels | safe }},
+    datasets: [{
+        label: 'Sales',
+        data: {{ sales_trends.sales_data | safe }},
+        borderColor: 'blue',
+        borderWidth: 2
+            }, {
+        label: 'Profit',
+        data: {{ sales_trends.profit_data | safe }},
+        borderColor: 'green',
+        borderWidth: 2
+            }]
+        }
+    });
+</script>
+{% endblock %}
