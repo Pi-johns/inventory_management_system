@@ -4,10 +4,10 @@
 The Shop Management System is a powerful, role-based inventory and sales tracking platform designed to help businesses manage shops, sales, inventory, and financial reports efficiently. Built with Django (backend) and TailwindCSS + Chart.js (frontend), the system ensures seamless user experience, dynamic analytics, and real-time tracking of sales, real-time notifications and stock movements.
 
 ### 🚀 Key Features
--🔹 User Roles & Access
--✅ Superadmin: Full system control, manages all users, shops, and reports.
--✅ Manager: Manages shops, sellers, inventory, and sales tracking.
--✅ Seller: Records sales, tracks stock, and manages credit payments.
+- 🔹 User Roles & Access
+- ✅ Superadmin: Full system control, manages all users, shops, and reports.
+- ✅ Manager: Manages shops, sellers, inventory, and sales tracking.
+- ✅ Seller: Records sales, tracks stock, and manages credit payments.
 
 ### 🛒 Shop & Seller Management
 -✅ Create & Manage Shops: Managers or Superadmins can create shops.
