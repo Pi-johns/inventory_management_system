@@ -10,10 +10,10 @@ The Shop Management System is a powerful, role-based inventory and sales trackin
 - ✅ Seller: Records sales, tracks stock, and manages credit payments.
 
 ### 🛒 Shop & Seller Management
--✅ Create & Manage Shops: Managers or Superadmins can create shops.
--✅ Assign Sellers to Shops: Sellers are linked to specific shops.
--✅ Inventory Management: Add, edit, delete products in the shop.
--✅ Low Stock Alerts: Get notified when stock is low.
+- ✅ Create & Manage Shops: Managers or Superadmins can create shops.
+- ✅ Assign Sellers to Shops: Sellers are linked to specific shops.
+- ✅ Inventory Management: Add, edit, delete products in the shop.
+- ✅ Low Stock Alerts: Get notified when stock is low.
 
 ### 💰 Sales & Credit Tracking
 -✅ Record Sales: Sellers can record sales with multiple products.
@@ -24,12 +24,12 @@ The Shop Management System is a powerful, role-based inventory and sales trackin
 -✅ Sales Returns: Delete or modify sales to return items to stock.
 
 ### 📊 Reports & Analytics
--✅ Sales Reports: Daily, Weekly, Monthly revenue breakdown.
--✅ Profit Analysis: Compare cost price vs selling price.
--✅ Top & Least Selling Products: Identify performance trends.
--✅ Credit Sales Report: Track outstanding customer payments.
--✅ Graphical Representations: Interactive charts using Chart.js.
--✅ Export Reports: Download reports as CSV or PDF.
+- ✅ Sales Reports: Daily, Weekly, Monthly revenue breakdown.
+- ✅ Profit Analysis: Compare cost price vs selling price.
+- ✅ Top & Least Selling Products: Identify performance trends.
+- ✅ Credit Sales Report: Track outstanding customer payments.
+- ✅ Graphical Representations: Interactive charts using Chart.js.
+- ✅ Export Reports: Download reports as CSV or PDF.
 
 ### 🔔 Notifications & Alerts
 -✅ Real-Time Low Stock Alerts: Get notified of products running out.
@@ -37,18 +37,18 @@ The Shop Management System is a powerful, role-based inventory and sales trackin
 -✅ Sales & Performance Updates: Monitor daily sales trends.
 
 ### 🎨 User Interface & Experience
--✅ Django Admin Panel Style: Clean and professional UI.
--✅ Fixed Sidebar Navigation: Easy access to dashboard features.
--✅ Mobile Responsive: Works on all devices (PC, tablet, mobile).
--✅ Smooth UI with TailwindCSS: Fast-loading, modern design.
--✅ Interactive Graphs: Sales & profit trends using Chart.js.
+- ✅ Django Admin Panel Style: Clean and professional UI.
+- ✅ Fixed Sidebar Navigation: Easy access to dashboard features.
+- ✅ Mobile Responsive: Works on all devices (PC, tablet, mobile).
+- ✅ Smooth UI with TailwindCSS: Fast-loading, modern design.
+- ✅ Interactive Graphs: Sales & profit trends using Chart.js.
 
 ### ⚙️ Tech Stack
--✅ Backend: Django (Python)
--✅ Frontend: HTML, TailwindCSS, JavaScript
--✅ Database: PostgreSQL / SQLite
--✅ Charts & Reports: Chart.js for analytics
--✅ Authentication: Django User Model
+- ✅ Backend: Django (Python)
+- ✅ Frontend: HTML, TailwindCSS, JavaScript
+- ✅ Database: PostgreSQL / SQLite
+- ✅ Charts & Reports: Chart.js for analytics
+- ✅ Authentication: Django User Model
 
 
 
