@@ -16,12 +16,12 @@ The Shop Management System is a powerful, role-based inventory and sales trackin
 - ✅ Low Stock Alerts: Get notified when stock is low.
 
 ### 💰 Sales & Credit Tracking
--✅ Record Sales: Sellers can record sales with multiple products.
--✅ Cash & Credit Sales: Choose between cash or credit transactions.
--✅ Partial Payments: Buyers can pay part of the amount and settle later.
--✅ Automatic Stock Reduction: Sold products reduce from inventory.
--✅ Sales History & Filtering: Search sales by date, seller, or shop.
--✅ Sales Returns: Delete or modify sales to return items to stock.
+- ✅ Record Sales: Sellers can record sales with multiple products.
+- ✅ Cash & Credit Sales: Choose between cash or credit transactions.
+- ✅ Partial Payments: Buyers can pay part of the amount and settle later.
+- ✅ Automatic Stock Reduction: Sold products reduce from inventory.
+- ✅ Sales History & Filtering: Search sales by date, seller, or shop.
+- ✅ Sales Returns: Delete or modify sales to return items to stock.
 
 ### 📊 Reports & Analytics
 - ✅ Sales Reports: Daily, Weekly, Monthly revenue breakdown.
@@ -32,9 +32,9 @@ The Shop Management System is a powerful, role-based inventory and sales trackin
 - ✅ Export Reports: Download reports as CSV or PDF.
 
 ### 🔔 Notifications & Alerts
--✅ Real-Time Low Stock Alerts: Get notified of products running out.
--✅ Pending Credit Payments Alert: Track customers with outstanding debts.
--✅ Sales & Performance Updates: Monitor daily sales trends.
+- ✅ Real-Time Low Stock Alerts: Get notified of products running out.
+- ✅ Pending Credit Payments Alert: Track customers with outstanding debts.
+- ✅ Sales & Performance Updates: Monitor daily sales trends.
 
 ### 🎨 User Interface & Experience
 - ✅ Django Admin Panel Style: Clean and professional UI.
@@ -53,38 +53,59 @@ The Shop Management System is a powerful, role-based inventory and sales trackin
 
 
 ### 🔧 Installation & Setup
-###  1️⃣ Clone the Repository
-'''bash
-Copy
-Edit
-git clone https://github.com/Pi-johns/shop-management-system.git
-cd shop-management-system
-### 2️⃣ Create a Virtual Environment & Install Dependencies
-bash
-Copy
-Edit
-python -m venv venv
-source venv/bin/activate  # For Linux/macOS
-venv\Scripts\activate  # For Windows
-pip install -r requirements.txt
-### 3️⃣ Apply Migrations & Create Superuser
-bash
-Copy
-Edit
-python manage.py migrate
-python manage.py createsuperuser
-### 4️⃣ Run the Development Server
-bash
-Copy
-Edit
-python manage.py runserver
-🔗 Open http://127.0.0.1:8000/ in your browser.
 
-📜 License
-This project is licensed under the MIT License.
+## 📜 **How to Install & Run Locally**
+
+```bash
+# Clone the repository
+git clone https://github.com/your-repo/shop-management.git
+cd shop-management
+
+# Create a virtual environment and activate it
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run database migrations
+python manage.py migrate
+
+# Create a superuser
+python manage.py createsuperuser
+
+# Start the server
+python manage.py runserver
+
+
+```
+
+Now, visit **http://127.0.0.1:8000/** and log in! 🚀  
+
+---
+
+## 🎯 **User Roles & Actions**
+
+| Role         | Actions |
+|-------------|--------------------------------|
+| Superadmin  | Manage all users, shops, reports, notifications |
+| Manager     | Manage inventory, sellers, sales tracking |
+| Seller      | Record sales, manage payments, view reports |
+
+---
+
+## 📌 **Future Enhancements**
+- 🔄 **AI-based Sales Predictions**
+- 📱 **Mobile App Integration**
+- 🏆 **Loyalty Program for Customers**
+
+---
+
+## 💡 **Contributors**
+Developed by **Pi-Johns** 🚀  
 
 🤝 Contributions & Support
 Feel free to contribute to this project! Fork, modify, and submit a pull request.
 For any issues, create a GitHub issue or contact the developer.
 
-🔥 Built with ❤️ by Pi-johns! 🚀
+
