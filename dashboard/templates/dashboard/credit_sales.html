@@ -1,0 +1,31 @@
+{% extends "base/base.html" %}
+
+{% block content %}
+<h2>Credit Sales</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Customer</th>
+            <th>Amount Due</th>
+            <th>Due Date</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for credit in credit_sales %}
+        <tr>
+            <td>{{ credit.sale.customer_name }}</td>
+            <td>${{ credit.remaining_balance }}</td>
+            <td>{{ credit.sale.date }}</td>
+            <td>
+                <a href="{% url 'make_payment' credit.sale.id %}">Make Payment</a>
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="4">No outstanding credit sales.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

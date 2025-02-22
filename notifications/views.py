@@ -5,6 +5,7 @@ from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from .models import Notification
 from accounts.models import CustomUser
+from django.shortcuts import render, redirect
 
 
 def send_notification(user=None, message=""):
@@ -30,6 +31,8 @@ def send_notification(user=None, message=""):
         group_name,
         {"type": "send_notification", "message": message}
     )
+
+
 @login_required
 def get_notifications(request):
     """Fetch notifications for the logged-in user."""
@@ -38,10 +41,11 @@ def get_notifications(request):
     else:
         notifications = Notification.objects.filter(user=request.user)
 
-    return JsonResponse({'notifications': list(notifications.values())})
+    return render(request, "notifications/notification_list.html")
 
 @login_required
 def mark_as_read(request):
     """Mark all notifications as read for the logged-in user."""
     Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
-    return JsonResponse({'success': True})
+    return redirect("notifications_mark_as_read")
+

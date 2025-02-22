@@ -1,0 +1,26 @@
+{% extends "base/base.html" %}
+
+{% block content %}
+<div class="p-6">
+    <h2 class="text-xl font-semibold mb-4">🔔 Notifications</h2>
+
+    <div class="bg-white shadow-md rounded-lg p-4">
+        {% if notifications %}
+        <ul class="divide-y divide-gray-200">
+            {% for notification in notifications %}
+            <li class="p-3 {% if not notification.is_read %}bg-gray-100{% endif %}">
+                <p class="text-sm">{{ notification.message }}</p>
+                <p class="text-xs text-gray-500">{{ notification.created_at|date:"F d, Y h:i A" }}</p>
+                {% if not notification.is_read %}
+                <a href="{% url 'notifications:mark_as_read' notification.id %}" class="text-blue-600 text-sm">Mark as
+                    read</a>
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-gray-500">No notifications available.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

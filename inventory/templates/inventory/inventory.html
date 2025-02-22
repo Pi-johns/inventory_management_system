@@ -32,27 +32,52 @@
     <div class="ml-64 flex-1 p-10">
         <h1 class="text-3xl font-bold">Inventory Management</h1>
 
-        <!-- Low Stock Alerts -->
+
+
+        <!-- ⚠️ Low Stock Alerts (Only Show if Needed) -->
+        {% if low_stock_products %}
         <div class="bg-red-100 p-5 mt-5 border-l-4 border-red-500 text-red-700">
-            {% if low_stock_products|length == 0 %} {% endif %}
-            <h2 class="font-bold">⚠️ Low Stock Alerts</h2>
-            <ul>
+            <h2 class="font-bold">⚠️ Low Stock Alert</h2>
+            <p class="mb-2">
+                {% if low_stock_products|length == 1 %}
+                1 product is running low on stock.
+                {% else %}
+                {{ low_stock_products|length }} products are running low on stock.
+                {% endif %}
+            </p>
+            <ul class="list-disc pl-5">
                 {% for product in low_stock_products %}
-                <li>{{ product.name }} - Only {{ product.stock }} left</li>
+                <li class="text-sm">{{ product.name }} - Only <strong>{{ product.stock_quantity }}</strong> left</li>
                 {% endfor %}
             </ul>
         </div>
+        {% endif %}
 
-
-        <!-- Product List -->
+        <!-- 📦 Product List Header with Search Bar -->
         <div class="bg-white p-5 mt-5 shadow rounded-lg">
-            <h2 class="text-lg font-semibold">Product List</h2>
+            <div class="flex justify-between items-center">
+                <!-- 📋 Title -->
+                <h2 class="text-lg font-semibold">📋 Product List</h2>
+
+                <!-- 🔍 Search Bar (Resized & Aligned) -->
+                <form method="GET" action="{% url 'inventory:product_list' %}" class="flex items-center space-x-2">
+                    <input type="text" name="q" placeholder="Search..."
+                        class="w-48 border p-2 rounded-lg focus:ring focus:ring-blue-300"
+                        value="{{ search_query|default_if_none:'' }}">
+                    <button type="submit" class="bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700">
+                        🔍
+                    </button>
+                </form>
+            </div>
+
+            <!-- 📦 Product Table -->
             <table class="w-full mt-3 border-collapse border border-gray-300">
                 <thead>
                     <tr class="bg-gray-200">
+                        <th class="border border-gray-300 px-4 py-2">#</th>
                         <th class="border border-gray-300 px-4 py-2">Name</th>
                         <th class="border border-gray-300 px-4 py-2">Stock</th>
-                        <th class="border border-gray-300 px-4 py-2">Price</th>
+                        <th class="border border-gray-300 px-4 py-2">Price (KES)</th>
                         {% if request.user.role == 'manager' or request.user.role == 'superadmin' %}
                         <th class="border border-gray-300 px-4 py-2">Actions</th>
                         {% endif %}
@@ -60,10 +85,11 @@
                 </thead>
                 <tbody>
                     {% for product in products %}
-                    <tr>
+                    <tr class="{% if product.stock_quantity < product.low_stock_threshold %}bg-red-100{% endif %}">
+                        <td class="border border-gray-300 px-4 py-2">{{ forloop.counter }}</td>
                         <td class="border border-gray-300 px-4 py-2">{{ product.name }}</td>
-                        <td class="border border-gray-300 px-4 py-2">{{ product.stock }}</td>
-                        <td class="border border-gray-300 px-4 py-2">${{ product.price }}</td>
+                        <td class="border border-gray-300 px-4 py-2">{{ product.stock_quantity }}</td>
+                        <td class="border border-gray-300 px-4 py-2">{{ product.entry_price }}</td>
                         {% if request.user.role == 'manager' or request.user.role == 'superadmin' %}
                         <td class="border border-gray-300 px-4 py-2">
                             <a href="{% url 'inventory:update_product' product.id %}" class="text-blue-600">✏️ Edit</a>
@@ -74,12 +100,21 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="4" class="text-center py-2">No products available.</td>
+                        <td colspan="5" class="text-center py-3 text-gray-500">
+
+                            ❌ No matching products for "<strong>{{ query }}</strong>"
+
+
+
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
+
+
+
     </div>
 </div>
 {% endblock %}

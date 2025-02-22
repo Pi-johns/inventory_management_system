@@ -1,8 +1,7 @@
 from django.urls import path
 from .views import (
-    superadmin_dashboard, manager_dashboard, seller_dashboard, 
-    forbidden_view, create_seller, edit_seller,
-      delete_seller, seller_list, manager_list,
+    superadmin_dashboard, manager_dashboard,  
+    forbidden_view,  manager_list,
         create_manager, edit_manager, delete_manager, sales_dashboard)
 
 app_name = "dashboard"
@@ -11,14 +10,9 @@ urlpatterns = [
     path("sales/", sales_dashboard, name="sales_dashboard"),
     path("superadmin/", superadmin_dashboard, name="superadmin_dashboard"),
     path("manager/", manager_dashboard, name="manager_dashboard"),
-    path("seller/", seller_dashboard, name="seller_dashboard"),
     path("forbidden/", forbidden_view, name="forbidden"),
-    path("manager/sellers/create/", create_seller, name="create_seller"),
-    path("manager/sellers/edit/<int:seller_id>/", edit_seller, name="edit_seller"),
-    path("manager/sellers/delete/<int:seller_id>/", delete_seller, name="delete_seller"),
     path("superadmin/dashboard/", superadmin_dashboard, name="superadmin_dashboard"),
     path("manager/dashboard/", manager_dashboard, name="manager_dashboard"),
-    path("list/", seller_list, name="seller_list"),
     path("managers/", manager_list, name="manager_list"),
     path("managers/create/", create_manager, name="create_manager"),
     path("managers/edit/<int:manager_id>/", edit_manager, name="edit_manager"),

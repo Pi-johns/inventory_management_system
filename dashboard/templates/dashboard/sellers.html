@@ -9,10 +9,10 @@
         </div>
         <ul class="mt-5">
             <li class="py-2 px-5 hover:bg-gray-700">
-                <a href="{% url 'dashboard:create_seller' %}">➕ Create Seller</a>
+                <a href="{% url 'sellers:create_seller' %}">➕ Create Seller</a>
             </li>
             <li class="py-2 px-5 hover:bg-gray-700">
-                <a href="{% url 'dashboard:seller_list' %}">📜 Sellers List</a>
+                <a href="{% url 'sellers:seller_list' %}">📜 Sellers List</a>
             </li>
         </ul>
     </nav>
@@ -26,7 +26,7 @@
                 <thead>
                     <tr class="bg-gray-800 text-white">
                         <th class="py-2 px-4 border">#</th>
-                        <th class="py-2 px-4 border">Name</th>
+                        <th class="py-2 px-4 border">Username</th>
                         <th class="py-2 px-4 border">Email</th>
                         <th class="py-2 px-4 border">Phone</th>
                         <th class="py-2 px-4 border">Shop</th>
@@ -37,14 +37,14 @@
                     {% for seller in sellers %}
                     <tr class="hover:bg-gray-200">
                         <td class="py-2 px-4 border">{{ forloop.counter }}</td>
-                        <td class="py-2 px-4 border">{{ seller.user.get_full_name }}</td>
+                        <td class="py-2 px-4 border">{{ seller.user.username }}</td>
                         <td class="py-2 px-4 border">{{ seller.user.email }}</td>
                         <td class="py-2 px-4 border">{{ seller.phone }}</td>
                         <td class="py-2 px-4 border">{{ seller.shop.name }}</td>
                         <td class="py-2 px-4 border text-center">
-                            <a href="{% url 'dashboard:edit_seller' seller.id %}"
+                            <a href="{% url 'sellers:edit_seller' seller.id %}"
                                 class="bg-blue-500 text-white px-3 py-1 rounded">✏️ Edit</a>
-                            <a href="{% url 'dashboard:delete_seller' seller.id %}"
+                            <a href="{% url 'sellers:delete_seller' seller.id %}"
                                 class="bg-red-500 text-white px-3 py-1 rounded"
                                 onclick="return confirm('Are you sure you want to delete this seller?')">🗑️ Delete</a>
                         </td>

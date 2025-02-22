@@ -1,41 +1,138 @@
 {% extends 'base/base.html' %}
 
 {% block content %}
-<div class="ml-64 flex-1 p-10">
-    <h1 class="text-3xl font-bold">Record New Sale</h1>
+<div class="flex h-screen bg-gray-100">
+    <!-- Sidebar -->
+    <nav class="w-64 bg-gray-900 text-white fixed h-full">
+        <div class="p-5 text-xl font-bold border-b border-gray-700">
+            🛒 Sales Management
+        </div>
+        <ul class="mt-5 space-y-2">
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="{% url 'sales:sales_list' %}">📋 Sales List</a>
+            </li>
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="{% url 'sales:record_sale' %}">➕ Record Sale</a>
+            </li>
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="">📤 Export Reports</a>
+            </li>
+        </ul>
+    </nav>
 
-    <div class="bg-white p-5 mt-5 shadow rounded-lg">
-        <form method="POST">
-            {% csrf_token %}
-            <label class="block">Product</label>
-            <select name="product" class="w-full border p-2 rounded-lg mb-3">
-                {% for product in products %}
-                <option value="{{ product.id }}">{{ product.name }} (Stock: {{ product.stock }})</option>
-                {% endfor %}
-            </select>
+    <div class="ml-64 flex-1 p-10">
+        <h1 class="text-3xl font-bold">Record New Sale</h1>
 
-            <label class="block">Quantity</label>
-            <input type="number" name="quantity" class="w-full border p-2 rounded-lg mb-3">
+        <div class="bg-white p-5 mt-5 shadow rounded-lg">
+            <form method="POST" action="{% url 'sales:record_sale' %}" id="saleForm">
+                {% csrf_token %}
 
-            <label class="block">Selling Price</label>
-            <input type="number" name="price" step="0.01" class="w-full border p-2 rounded-lg mb-3">
+                <label class="block">Product</label>
+                <select name="product" class="w-full border p-2 rounded-lg mb-3" required>
+                    {% for product in products %}
+                    <option value="{{ product.id }}" data-price="{{ product.selling_price }}"
+                        data-stock="{{ product.stock }}">
+                        {{ product.name }} (Stock: {{ product.stock }})
+                    </option>
+                    {% endfor %}
+                </select>
 
-            <label class="block">Payment Type</label>
-            <select name="payment_type" class="w-full border p-2 rounded-lg mb-3">
-                <option value="cash">Cash</option>
-                <option value="credit">Credit</option>
-            </select>
+                <label class="block">Quantity</label>
+                <input type="number" name="quantity" id="quantity" min="1" class="w-full border p-2 rounded-lg mb-3"
+                    required>
 
-            <label class="block">Customer Name (For Credit Sales)</label>
-            <input type="text" name="customer_name" class="w-full border p-2 rounded-lg mb-3">
+                <label class="block">Selling Price (Per Piece)</label>
+                <input type="number" name="price" id="price" step="0.01" min="0"
+                    class="w-full border p-2 rounded-lg mb-3" required>
 
-            <label class="block">Customer Phone</label>
-            <input type="text" name="customer_phone" class="w-full border p-2 rounded-lg mb-3">
+                <label class="block">Total Amount</label>
+                <input type="text" id="total_amount" class="w-full border p-2 rounded-lg mb-3 bg-gray-100" readonly>
 
-            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
-                ✅ Save Sale
-            </button>
-        </form>
+                <label class="block">Amount Paid</label>
+                <input type="number" name="amount_paid" id="amount_paid" step="0.01" min="0"
+                    class="w-full border p-2 rounded-lg mb-3">
+
+                <label class="block">Balance</label>
+                <input type="text" id="balance" class="w-full border p-2 rounded-lg mb-3 bg-gray-100" readonly>
+
+                <!-- Hidden Payment Status -->
+                <input type="hidden" name="payment_status" id="payment_status">
+
+                <!-- Credit Sale Details (Only Visible if Balance > 0) -->
+                <div id="credit_info" class="hidden">
+                    <label class="block">Customer Name (For Credit Sales)</label>
+                    <input type="text" name="customer_name" class="w-full border p-2 rounded-lg mb-3">
+
+                    <label class="block">Customer Phone</label>
+                    <input type="text" name="customer_phone" class="w-full border p-2 rounded-lg mb-3">
+                </div>
+
+                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                    ✅ Save Sale
+                </button>
+            </form>
+        </div>
     </div>
 </div>
+
+<script>
+    function updateSaleCalculations() {
+        let quantity = parseFloat(document.getElementById('quantity').value) || 0;
+        let price = parseFloat(document.getElementById('price').value) || 0;
+        let amountPaid = parseFloat(document.getElementById('amount_paid').value) || 0;
+
+        let totalAmount = quantity * price;
+        let balance = totalAmount - amountPaid;
+
+        document.getElementById('total_amount').value = totalAmount.toFixed(2);
+        document.getElementById('balance').value = balance.toFixed(2);
+
+        // Determine Payment Status
+        let paymentStatus = "";
+        if (balance === 0) {
+            paymentStatus = "paid";
+        } else if (amountPaid === 0) {
+            paymentStatus = "credit";
+        } else {
+            paymentStatus = "partial";
+        }
+        document.getElementById('payment_status').value = paymentStatus;
+
+        // Show credit info if balance > 0
+        let creditInfo = document.getElementById('credit_info');
+        if (balance > 0) {
+            creditInfo.classList.remove('hidden');
+        } else {
+            creditInfo.classList.add('hidden');
+        }
+    }
+
+    document.getElementById('quantity').addEventListener('input', updateSaleCalculations);
+    document.getElementById('price').addEventListener('input', updateSaleCalculations);
+    document.getElementById('amount_paid').addEventListener('input', updateSaleCalculations);
+
+    // Redirect to Sales List after submission
+    document.getElementById('saleForm').addEventListener('submit', function (event) {
+        event.preventDefault(); // Prevent default submission
+
+        let formData = new FormData(this);
+        fetch("{% url 'sales:record_sale' %}", {
+            method: "POST",
+            body: formData
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = "{% url 'sales:sales_list' %}"; // Redirect after success
+                } else {
+                    alert("Error saving sale! Please check your inputs.");
+                }
+            })
+            .catch(error => {
+                alert("Error: " + error);
+            });
+    });
+
+</script>
+
 {% endblock %}

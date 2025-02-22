@@ -1,0 +1,14 @@
+{% extends "base/base.html" %}
+
+{% block content %}
+<h2>Make Payment for {{ sale.customer_name }}</h2>
+
+<form method="POST">
+    {% csrf_token %}
+    <label>Amount to Pay:</label>
+    <input type="number" step="0.01" name="amount_paid" required>
+    <button type="submit">Submit Payment</button>
+</form>
+
+<a href="{% url 'credit_sales_list' %}">Back to Credit Sales</a>
+{% endblock %}

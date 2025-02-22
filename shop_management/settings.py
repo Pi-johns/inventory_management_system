@@ -50,8 +50,10 @@ INSTALLED_APPS = [
     'reports',
     'dashboard',
     'shops',
-    'django_extensions', 
-    'reportlab',
+    'sellers',
+
+    
+
 
 ]
 
@@ -98,7 +100,8 @@ CHANNEL_LAYERS = {
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-# add your database settings here
+
+
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators

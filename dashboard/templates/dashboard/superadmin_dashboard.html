@@ -15,7 +15,7 @@
                 <a href="{% url 'dashboard:manager_list' %}">👤 Manage Managers</a>
             </li>
             <li class="py-2 px-5 hover:bg-gray-700">
-                <a href="{% url 'dashboard:seller_list' %}">👤 Manage Sellers</a>
+                <a href="{% url 'sellers:seller_list' %}">👤 Manage Sellers</a>
             </li>
             <li class="py-2 px-5 hover:bg-gray-700">
                 <a href="{% url 'shops:shop_list' %}">🏪 Manage Shops</a>
@@ -40,13 +40,13 @@
 
     <!-- Content Area -->
     <div class="ml-64 flex-1 p-10">
-        <h1 class="text-3xl font-bold">Welcome, Superadmin!</h1>
+        <h1 class="text-3xl font-bold">Welcome, {{ request.user.username }}</h1>
 
         <!-- Dashboard Stats -->
         <div class="grid grid-cols-4 gap-5 mt-5">
             <div class="bg-white p-5 shadow rounded-lg">
                 <h2 class="text-lg font-semibold">Total Sales</h2>
-                <p class="text-2xl font-bold text-blue-600">KES{{ total_sales }}</p>
+                <p class="text-2xl font-bold text-blue-600">{{ total_sales }}</p>
             </div>
             <div class="bg-white p-5 shadow rounded-lg">
                 <h2 class="text-lg font-semibold">Total Profit</h2>
@@ -64,14 +64,28 @@
 
         <!-- Notifications -->
         <div class="bg-white p-5 mt-5 shadow rounded-lg">
-            <h2 class="text-lg font-semibold">Latest Notifications</h2>
-            <ul>
-                {% for notification in notifications %}
-                <li class="border-b py-2">{{ notification.message }}</li>
-                {% empty %}
-                <li>No notifications available.</li>
-                {% endfor %}
-            </ul>
+            <div class="p-6">
+                <h2 class="text-xl font-semibold mb-4">🔔 Notifications</h2>
+
+                <div class="bg-white shadow-md rounded-lg p-4">
+                    {% if notifications %}
+                    <ul class="divide-y divide-gray-200">
+                        {% for notification in notifications %}
+                        <li class="p-3 {% if not notification.is_read %}bg-gray-100{% endif %}">
+                            <p class="text-sm">{{ notification.message }}</p>
+                            <p class="text-xs text-gray-500">{{ notification.created_at|date:"F d, Y h:i A" }}</p>
+                            {% if not notification.is_read %}
+                            <a href="" class="text-blue-600 text-sm">Mark as
+                                read</a>
+                            {% endif %}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="text-gray-500">No notifications available.</p>
+                    {% endif %}
+                </div>
+            </div>
         </div>
 
         <!-- Sales & Profit Trends (Chart.js) -->

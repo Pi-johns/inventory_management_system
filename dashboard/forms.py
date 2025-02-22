@@ -1,7 +1,8 @@
 from django import forms
 from shops.models import Shop
-from accounts.models import CustomUser, Seller
-from accounts.models import CustomUser as User
+from accounts.models import CustomUser
+from sellers.models import Seller
+
 
 class SellerForm(forms.ModelForm):
     phone = forms.CharField(max_length=15, required=True)

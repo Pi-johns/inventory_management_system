@@ -12,16 +12,16 @@
                 <a href="">🏠 Dashboard Home</a>
             </li>
             <li class="py-2 px-5 hover:bg-gray-700">
-                <a href="{% url 'record_sale' %}">🛒 Record Sale</a>
+                <a href="{% url 'sales:record_sale' %}">🛒 Record Sale</a>
             </li>
             <li class="py-2 px-5 hover:bg-gray-700">
-                <a href="{% url 'credit_sales' %}">💳 Credit Sales</a>
+                <a href="{% url 'sellers:credit_sales' %}">💳 Credit Sales</a>
             </li>
             <li class="py-2 px-5 hover:bg-gray-700">
-                <a href="{% url 'notifications' %}">🔔 Notifications ({{ notifications.count }})</a>
+                <a href="{% url 'notifications:get_notifications' %}">🔔 Notifications ({{ notifications.count }})</a>
             </li>
             <li class="py-2 px-5 hover:bg-red-600">
-                <a href="{% url 'logout' %}">🚪 Logout</a>
+                <a href="{% url 'accounts:logout' %}">🚪 Logout</a>
             </li>
         </ul>
     </nav>
@@ -34,11 +34,11 @@
         <div class="grid grid-cols-3 gap-5 mt-5">
             <div class="bg-white p-5 shadow rounded-lg">
                 <h2 class="text-lg font-semibold">Today's Sales</h2>
-                <p class="text-2xl font-bold text-blue-600">${{ today_sales }}</p>
+                <p class="text-2xl font-bold text-blue-600">KES{{ today_sales }}</p>
             </div>
             <div class="bg-white p-5 shadow rounded-lg">
                 <h2 class="text-lg font-semibold">Pending Credit</h2>
-                <p class="text-2xl font-bold text-red-600">${{ pending_credit }}</p>
+                <p class="text-2xl font-bold text-red-600">KES{{ pending_credit }}</p>
             </div>
             <div class="bg-white p-5 shadow rounded-lg">
                 <h2 class="text-lg font-semibold">Products Sold</h2>
@@ -58,26 +58,84 @@
             </ul>
         </div>
 
-        <!-- Sales Chart -->
-        <div class="bg-white p-5 mt-5 shadow rounded-lg">
-            <h2 class="text-lg font-semibold">Sales Trends</h2>
-            <canvas id="sellerSalesChart"></canvas>
+
+        <!--  Sales -->
+        <h2 class="text-2xl font-bold mb-4">📋 Sales List</h2>
+        <div class="bg-white p-5 shadow rounded-lg">
+            <table class="w-full border-collapse border border-gray-300">
+                <thead>
+                    <tr class="bg-gray-200">
+                        <th class="border border-gray-300 px-4 py-2">#</th>
+                        <th class="border border-gray-300 px-4 py-2">Seller</th>
+                        <th class="border border-gray-300 px-4 py-2">Total Amount</th>
+                        <th class="border border-gray-300 px-4 py-2">Paid Amount</th>
+                        <th class="border border-gray-300 px-4 py-2">Balance</th>
+                        <th class="border border-gray-300 px-4 py-2">Date</th>
+                        <th class="border border-gray-300 px-4 py-2">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sale in sales %}
+                    <tr class="hover:bg-gray-100">
+                        <td class="border px-4 py-2">{{ forloop.counter }}</td>
+                        <td class="border px-4 py-2">{{ sale.seller.username }}</td>
+                        <td class="border px-4 py-2">Kes {{ sale.total_amount }}</td>
+                        <td class="border px-4 py-2">Kes {{ sale.paid_amount }}</td>
+                        <td class="border px-4 py-2">Kes {{ sale.balance }}</td>
+                        <td class="border px-4 py-2">{{ sale.date_sold }}</td>
+                        <td class="border px-4 py-2 text-center space-x-1">
+                            <a href="{% url 'sales:sale_edit' sale.id %}"
+                                class="bg-blue-500 text-white px-2 py-1 rounded">✏️ Edit</a>
+                            <a href="{% url 'sales:sale_delete' sale.id %}"
+                                class="bg-red-500 text-white px-2 py-1 rounded"
+                                onclick="return confirm('Are you sure you want to delete this sale?')">🗑️
+                                Delete</a>
+                            <a href="{% url 'sales:sale_print' sale.id %}"
+                                class="bg-gray-500 text-white px-2 py-1 rounded">🖨️ Print</a>
+                            <a href="{% url 'sales:sale_pdf' sale.id %}"
+                                class="bg-purple-500 text-white px-2 py-1 rounded">📄 PDF</a>
+                            <a href="{% url 'sales:sale_csv' sale.id %}"
+                                class="bg-green-500 text-white px-2 py-1 rounded">📑 CSV</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-2">No sales you have recorded.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
+
+        <!-- Product List -->
+        <div class="bg-white p-5 mt-5 shadow rounded-lg">
+            <h2 class="text-lg font-semibold">Product List</h2>
+            <table class="w-full mt-3 border-collapse border border-gray-300">
+                <thead>
+                    <tr class="bg-gray-200">
+                        <th class="border border-gray-300 px-4 py-2">Name</th>
+                        <th class="border border-gray-300 px-4 py-2">Stock</th>
+                        <th class="border border-gray-300 px-4 py-2">Price</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for product in products %}
+                    <tr>
+                        <td class="border border-gray-300 px-4 py-2">{{ product.name }}</td>
+                        <td class="border border-gray-300 px-4 py-2">{{ product.stock }}</td>
+                        <td class="border border-gray-300 px-4 py-2">${{ product.price }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center py-2">No products available.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
     </div>
 </div>
 
-<script>
-    var ctx = document.getElementById('sellerSalesChart').getContext('2d');
-    var salesChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: {{ sales_trends.labels | safe }},
-    datasets: [{
-        label: 'Sales',
-        data: {{ sales_trends.data | safe }},
-        backgroundColor: 'blue'
-            }]
-        }
-    });
-</script>
+
 {% endblock %}

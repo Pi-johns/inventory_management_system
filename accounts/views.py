@@ -47,7 +47,7 @@ def user_login(request):
             elif user.role == "manager":
                 return redirect(reverse("dashboard:manager_dashboard"))  # ✅ Ensure this exists
             elif user.role == "seller":
-                return redirect(reverse("dashboard:seller_dashboard"))
+                return redirect(reverse("sellers:seller_dashboard"))
             else:
                 return redirect("home")  # Default fallback
 

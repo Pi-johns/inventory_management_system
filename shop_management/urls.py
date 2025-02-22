@@ -18,6 +18,7 @@ from django.contrib import admin
 from django.urls import path, include
 from accounts.views import user_login
 
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', user_login, name='home'),
@@ -28,6 +29,6 @@ urlpatterns = [
     path('sales/', include('sales.urls')),  # ✅ Include sales app URLs
     path('reports/', include('reports.urls')),  # ✅ Include reports app URLs
     path('notifications/', include('notifications.urls')),  # ✅ Include notifications app URLs
-
+    path('sellers/', include('sellers.urls')),  # ✅ Include sellers app URLs
 
 ]

@@ -6,7 +6,6 @@ accounting_report_view,
 profit_analysis,
 reports_data,
 reports_dashboard,
-manager_reports,
 export_sales_csv,
 export_sales_pdf,
 export_balance_csv,
@@ -27,12 +26,11 @@ path("data/", reports_data, name="reports_data"),
 
 # Full dashboard views for reports
 path("dashboard/", reports_dashboard, name="reports_dashboard"),
-path("manager/", manager_reports, name="manager_reports"),
+
 
 # Export endpoints for Sales Reports
 path("export/sales/csv/", export_sales_csv, name="export_sales_csv"),
 path("export/sales/pdf/", export_sales_pdf, name="export_sales_pdf"),
-
 # Export endpoints for Balance Sheet/Accounting Reports
 path("export/balance/csv/", export_balance_csv, name="export_balance_csv"),
 path("export/balance/pdf/", export_balance_pdf, name="export_balance_pdf"),

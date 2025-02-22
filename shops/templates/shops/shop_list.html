@@ -9,7 +9,7 @@
         </div>
         <ul class="mt-5 space-y-2">
             <li class="py-2 px-5 hover:bg-gray-700">
-                <a href="{% url 'shops:shops_list' %}">📋 All Shops</a>
+                <a href="{% url 'shops:shop_list' %}">📋 All Shops</a>
             </li>
             <li class="py-2 px-5 hover:bg-gray-700">
                 <a href="#create_shop">➕ Create Shop</a>
@@ -31,6 +31,7 @@
                             <th class="border border-gray-300 px-4 py-2">#</th>
                             <th class="border border-gray-300 px-4 py-2">Shop Name</th>
                             <th class="border border-gray-300 px-4 py-2">Location</th>
+                            <th class="border border-gray-300 px-4 py-2">Seller</th>
                             <th class="border border-gray-300 px-4 py-2">Actions</th>
                         </tr>
                     </thead>
@@ -40,6 +41,8 @@
                             <td class="border px-4 py-2">{{ forloop.counter }}</td>
                             <td class="border px-4 py-2">{{ shop.name }}</td>
                             <td class="border px-4 py-2">{{ shop.location }}</td>
+                            <td class="border px-4 py-2">{{ shop.seller.name }}</td>
+
                             <td class="border px-4 py-2 text-center space-x-2">
                                 <a href="{% url 'shops:edit_shop' shop.id %}"
                                     class="bg-blue-500 text-white px-3 py-1 rounded">✏️ Edit</a>
@@ -51,7 +54,7 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="4" class="text-center py-2">No shops available.</td>
+                            <td colspan="5" class="text-center py-2">No shops available.</td>
                         </tr>
                         {% endfor %}
                     </tbody>

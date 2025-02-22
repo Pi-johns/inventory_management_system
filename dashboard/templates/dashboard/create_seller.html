@@ -7,11 +7,11 @@
         <h2 class="text-xl font-bold mb-4">Seller Management</h2>
         <ul>
             <li class="mb-2">
-                <a href="{% url 'dashboard:create_seller' %}" class="block py-2 px-4 bg-gray-700 rounded">➕ Create
+                <a href="{% url 'sellers:create_seller' %}" class="block py-2 px-4 bg-gray-700 rounded">➕ Create
                     Seller</a>
             </li>
             <li>
-                <a href="{% url 'dashboard:seller_list' %}" class="block py-2 px-4 hover:bg-gray-700 rounded">📋 Sellers
+                <a href="{% url 'sellers:seller_list' %}" class="block py-2 px-4 hover:bg-gray-700 rounded">📋 Sellers
                     List</a>
             </li>
         </ul>
@@ -29,36 +29,54 @@
                 <div class="mb-4">
                     <label class="block font-semibold">Username:</label>
                     {{ form.username }}
+                    {% if form.username.errors %}
+                    <p class="text-red-500 text-sm">{{ form.username.errors.0 }}</p>
+                    {% endif %}
                 </div>
 
                 <!-- Email -->
                 <div class="mb-4">
                     <label class="block font-semibold">Email:</label>
                     {{ form.email }}
+                    {% if form.email.errors %}
+                    <p class="text-red-500 text-sm">{{ form.email.errors.0 }}</p>
+                    {% endif %}
                 </div>
 
                 <!-- Phone -->
                 <div class="mb-4">
                     <label class="block font-semibold">Phone:</label>
                     {{ form.phone }}
+                    {% if form.phone.errors %}
+                    <p class="text-red-500 text-sm">{{ form.phone.errors.0 }}</p>
+                    {% endif %}
                 </div>
 
                 <!-- Shop -->
                 <div class="mb-4">
                     <label class="block font-semibold">Assign to Shop:</label>
                     {{ form.shop }}
+                    {% if form.shop.errors %}
+                    <p class="text-red-500 text-sm">{{ form.shop.errors.0 }}</p>
+                    {% endif %}
                 </div>
 
                 <!-- Password -->
                 <div class="mb-4">
                     <label class="block font-semibold">Password:</label>
-                    {{ form.password}}
+                    {{ form.password }}
+                    {% if form.password.errors %}
+                    <p class="text-red-500 text-sm">{{ form.password.errors.0 }}</p>
+                    {% endif %}
                 </div>
 
                 <!-- Confirm Password -->
                 <div class="mb-4">
                     <label class="block font-semibold">Confirm Password:</label>
-                    {{ form.password }}
+                    {{ form.password2 }}
+                    {% if form.password2.errors %}
+                    <p class="text-red-500 text-sm">{{ form.password2.errors.0 }}</p>
+                    {% endif %}
                 </div>
 
                 <!-- Submit Button -->
