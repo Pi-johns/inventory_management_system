@@ -9,62 +9,95 @@
         </div>
         <ul class="mt-5 space-y-2">
             <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="">📊 Dashboard</a>
+            </li>
+            <li class="py-2 px-5 hover:bg-gray-700">
                 <a href="{% url 'sales:sales_list' %}">📋 Sales List</a>
-            </li>
-            <li class="py-2 px-5 hover:bg-gray-700">
-                <a href="{% url 'sales:record_sale' %}">➕ Record Sale</a>
-            </li>
-            <li class="py-2 px-5 hover:bg-gray-700">
-                <a href="">📤 Export Reports</a>
             </li>
         </ul>
     </nav>
 
+    <!-- Content Section -->
     <div class="ml-64 flex-1 p-10">
         <h1 class="text-3xl font-bold">Record New Sale</h1>
 
         <div class="bg-white p-5 mt-5 shadow rounded-lg">
-            <form method="POST" action="{% url 'sales:record_sale' %}" id="saleForm">
+            <form method="POST" action="" id="saleForm">
                 {% csrf_token %}
 
-                <label class="block">Product</label>
-                <select name="product" class="w-full border p-2 rounded-lg mb-3" required>
-                    {% for product in products %}
-                    <option value="{{ product.id }}" data-price="{{ product.selling_price }}"
-                        data-stock="{{ product.stock }}">
-                        {{ product.name }} (Stock: {{ product.stock }})
-                    </option>
-                    {% endfor %}
-                </select>
 
-                <label class="block">Quantity</label>
-                <input type="number" name="quantity" id="quantity" min="1" class="w-full border p-2 rounded-lg mb-3"
-                    required>
+                <!-- For Managers & Superadmins: Select Seller (with Shop displayed) -->
+                {% if request.user.is_superuser or "Manager" in request.user.groups.all|join:", " %}
+                <div>
+                    <label class="block font-semibold">Select Seller (and Shop)</label>
+                    <select name="seller_and_shop" class="w-full border p-2 rounded-lg mb-3" required>
+                        <option value="" disabled selected>👤 Select Seller (Shop)...</option>
+                        {% for seller in sellers %}
+                        <option value="{{ seller.id }}|{{ seller.shop.id }}">
+                            {{ seller.user.username }} ({{ seller.shop.name }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% else %}
+                <!-- For Sellers: Their seller (and shop) is auto-assigned -->
+                <input type="hidden" name="seller_and_shop"
+                    value="{{ request.user.seller.id }}|{{ request.user.seller.shop.id }}">
+                {% endif %}
 
-                <label class="block">Selling Price (Per Piece)</label>
-                <input type="number" name="price" id="price" step="0.01" min="0"
-                    class="w-full border p-2 rounded-lg mb-3" required>
 
-                <label class="block">Total Amount</label>
-                <input type="text" id="total_amount" class="w-full border p-2 rounded-lg mb-3 bg-gray-100" readonly>
+                <!-- 🛒 Sale Items Container -->
+                <div id="sale-items">
+                    <div class="sale-item flex gap-4">
+                        <select name="product[]" class="product-select w-full border p-2 rounded-lg mb-3" required>
+                            <option value="" disabled selected>🔍 Select Product...</option>
+                            {% for product in products %}
+                            <option value="{{ product.id }}" data-price="{{ product.selling_price }}"
+                                data-stock="{{ product.stock }}">
+                                {{ product.name }} (Stock: {{ product.stock }})
+                            </option>
+                            {% endfor %}
+                        </select>
 
-                <label class="block">Amount Paid</label>
-                <input type="number" name="amount_paid" id="amount_paid" step="0.01" min="0"
-                    class="w-full border p-2 rounded-lg mb-3">
+                        <input type="number" name="quantity[]" min="1" placeholder="Qty"
+                            class="quantity-input w-24 border p-2 rounded-lg mb-3" required>
 
-                <label class="block">Balance</label>
-                <input type="text" id="balance" class="w-full border p-2 rounded-lg mb-3 bg-gray-100" readonly>
+                        <input type="number" name="price_per_piece[]" step="0.01" placeholder="Price"
+                            class="price-input w-24 border p-2 rounded-lg mb-3" required>
 
-                <!-- Hidden Payment Status -->
-                <input type="hidden" name="payment_status" id="payment_status">
+                        <input type="text" class="total-amount w-32 border p-2 rounded-lg mb-3 bg-gray-100"
+                            placeholder="Total" readonly>
 
-                <!-- Credit Sale Details (Only Visible if Balance > 0) -->
-                <div id="credit_info" class="hidden">
-                    <label class="block">Customer Name (For Credit Sales)</label>
-                    <input type="text" name="customer_name" class="w-full border p-2 rounded-lg mb-3">
+                        <button type="button" class="remove-item bg-red-500 text-white px-2 py-1 rounded-lg">❌</button>
+                    </div>
+                </div>
 
-                    <label class="block">Customer Phone</label>
-                    <input type="text" name="customer_phone" class="w-full border p-2 rounded-lg mb-3">
+                <button type="button" id="add-item" class="bg-green-500 text-white px-4 py-2 rounded-lg">
+                    ➕ Add Item
+                </button>
+
+                <div class="mt-5">
+                    <label class="block font-semibold">Total Sale Amount</label>
+                    <input type="text" id="grand_total" class="w-full border p-2 rounded-lg mb-3 bg-gray-100"
+                        placeholder="Total Sale Amount" readonly>
+
+                    <label class="block font-semibold">Amount Paid</label>
+                    <input type="number" name="amount_paid" id="amount_paid" step="0.01" min="0"
+                        class="w-full border p-2 rounded-lg mb-3" placeholder="Amount Paid">
+
+                    <label class="block font-semibold">Balance</label>
+                    <input type="text" id="balance" class="w-full border p-2 rounded-lg mb-3 bg-gray-100"
+                        placeholder="Balance" readonly>
+                </div>
+
+                <div>
+                    <label class="block font-semibold">Customer Name</label>
+                    <input type="text" name="customer_name" class="w-full border p-2 rounded-lg mb-3"
+                        placeholder="Customer Name" required>
+
+                    <label class="block font-semibold">Customer Phone</label>
+                    <input type="text" name="customer_phone" class="w-full border p-2 rounded-lg mb-3"
+                        placeholder="Customer Phone" required>
                 </div>
 
                 <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
@@ -76,63 +109,72 @@
 </div>
 
 <script>
-    function updateSaleCalculations() {
-        let quantity = parseFloat(document.getElementById('quantity').value) || 0;
-        let price = parseFloat(document.getElementById('price').value) || 0;
-        let amountPaid = parseFloat(document.getElementById('amount_paid').value) || 0;
+    document.getElementById("add-item").addEventListener("click", function () {
+        const saleItemsContainer = document.getElementById("sale-items");
 
-        let totalAmount = quantity * price;
-        let balance = totalAmount - amountPaid;
+        // Create a fresh new sale item (not cloning)
+        const newItem = document.createElement("div");
+        newItem.classList.add("sale-item", "flex", "gap-4");
 
-        document.getElementById('total_amount').value = totalAmount.toFixed(2);
-        document.getElementById('balance').value = balance.toFixed(2);
+        newItem.innerHTML = `
+            <select name="product[]" class="product-select w-full border p-2 rounded-lg mb-3" required>
+                <option value="" disabled selected>🔍 Select Product...</option>
+                {% for product in products %}
+                <option value="{{ product.id }}" data-price="{{ product.selling_price }}"
+                    data-stock="{{ product.stock }}">
+                    {{ product.name }} (Stock: {{ product.stock }})
+                </option>
+                {% endfor %}
+            </select>
 
-        // Determine Payment Status
-        let paymentStatus = "";
-        if (balance === 0) {
-            paymentStatus = "paid";
-        } else if (amountPaid === 0) {
-            paymentStatus = "credit";
-        } else {
-            paymentStatus = "partial";
-        }
-        document.getElementById('payment_status').value = paymentStatus;
+            <input type="number" name="quantity[]" min="1" placeholder="Qty"
+                class="quantity-input w-24 border p-2 rounded-lg mb-3" required>
 
-        // Show credit info if balance > 0
-        let creditInfo = document.getElementById('credit_info');
-        if (balance > 0) {
-            creditInfo.classList.remove('hidden');
-        } else {
-            creditInfo.classList.add('hidden');
-        }
-    }
+            <input type="number" name="price_per_piece[]" step="0.01" placeholder="Price"
+                class="price-input w-24 border p-2 rounded-lg mb-3" required>
 
-    document.getElementById('quantity').addEventListener('input', updateSaleCalculations);
-    document.getElementById('price').addEventListener('input', updateSaleCalculations);
-    document.getElementById('amount_paid').addEventListener('input', updateSaleCalculations);
+            <input type="text" class="total-amount w-32 border p-2 rounded-lg mb-3 bg-gray-100"
+                placeholder="Total" readonly>
 
-    // Redirect to Sales List after submission
-    document.getElementById('saleForm').addEventListener('submit', function (event) {
-        event.preventDefault(); // Prevent default submission
+            <button type="button" class="remove-item bg-red-500 text-white px-2 py-1 rounded-lg">❌</button>
+        `;
 
-        let formData = new FormData(this);
-        fetch("{% url 'sales:record_sale' %}", {
-            method: "POST",
-            body: formData
-        })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    window.location.href = "{% url 'sales:sales_list' %}"; // Redirect after success
-                } else {
-                    alert("Error saving sale! Please check your inputs.");
-                }
-            })
-            .catch(error => {
-                alert("Error: " + error);
-            });
+        saleItemsContainer.appendChild(newItem);
     });
 
+    document.addEventListener("input", function (e) {
+        if (e.target.classList.contains("quantity-input") || e.target.classList.contains("price-input")) {
+            let row = e.target.closest(".sale-item");
+            let quantity = parseFloat(row.querySelector(".quantity-input").value) || 0;
+            let price = parseFloat(row.querySelector(".price-input").value) || 0;
+            row.querySelector(".total-amount").value = (quantity * price).toFixed(2);
+            updateGrandTotal();
+        }
+    });
+
+    document.getElementById("amount_paid").addEventListener("input", updateBalance);
+
+    document.addEventListener("click", function (e) {
+        if (e.target.classList.contains("remove-item")) {
+            e.target.closest(".sale-item").remove();
+            updateGrandTotal();
+        }
+    });
+
+    function updateGrandTotal() {
+        let total = 0;
+        document.querySelectorAll(".total-amount").forEach(input => {
+            total += parseFloat(input.value) || 0;
+        });
+        document.getElementById("grand_total").value = total.toFixed(2);
+        updateBalance();
+    }
+
+    function updateBalance() {
+        let total = parseFloat(document.getElementById("grand_total").value) || 0;
+        let paid = parseFloat(document.getElementById("amount_paid").value) || 0;
+        document.getElementById("balance").value = (total - paid).toFixed(2);
+    }
 </script>
 
 {% endblock %}

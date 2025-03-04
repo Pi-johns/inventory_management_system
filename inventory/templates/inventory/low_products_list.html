@@ -1,0 +1,77 @@
+{% extends 'base/base.html' %}
+
+{% block content %}
+<div class="flex h-screen bg-gray-100">
+    <!-- Sidebar -->
+    <nav class="w-64 bg-gray-900 text-white fixed h-full">
+        <div class="p-5 text-xl font-bold border-b border-gray-700">
+            Inventory Management
+        </div>
+        <ul class="mt-5">
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="{% url 'dashboard:manager_dashboard' %}">🏠 Dashboard</a>
+            </li>
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="{% url 'inventory:product_list' %}">📦 All Products</a>
+            </li>
+            <li class="py-2 px-5 bg-red-600">
+                <a href="{% url 'inventory:low_stock_products_list' %}">⚠️ Low Stock</a>
+            </li>
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="{% url 'inventory:add_product' %}">➕ Add Product</a>
+            </li>
+            <li class="py-2 px-5 hover:bg-red-600">
+                <a href="{% url 'accounts:logout' %}">🚪 Logout</a>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- Content Area -->
+    <div class="ml-64 flex-1 p-10">
+        <h1 class="text-3xl font-bold">⚠️ Low Stock Products</h1>
+
+        <!-- Stat Cards -->
+        <div class="grid grid-cols-3 gap-5 mt-5">
+            <div class="bg-yellow-500 text-white p-5 shadow rounded-lg">
+                <h2 class="text-lg font-semibold">Total Low Stock Items</h2>
+                <p class="text-2xl font-bold">{{ total_low_stock }}</p>
+            </div>
+            <div class="bg-red-600 text-white p-5 shadow rounded-lg">
+                <h2 class="text-lg font-semibold">Critical Stock (≤ 2 items)</h2>
+                <p class="text-2xl font-bold">{{ critical_stock }}</p>
+            </div>
+            <div class="bg-gray-700 text-white p-5 shadow rounded-lg">
+                <h2 class="text-lg font-semibold">Total Products</h2>
+                <p class="text-2xl font-bold">{{ low_stock_products.count }}</p>
+            </div>
+        </div>
+
+        <!-- Low Stock Products Table -->
+        <div class="bg-white p-5 mt-5 shadow rounded-lg">
+            <h2 class="text-lg font-semibold text-red-600">🚨 Products Running Low</h2>
+            <table class="w-full mt-3 border-collapse border border-gray-200">
+                <thead class="bg-gray-800 text-white">
+                    <tr>
+                        <th class="p-3 border border-gray-300">Product Name</th>
+                        <th class="p-3 border border-gray-300">Stock Quantity</th>
+                        <th class="p-3 border border-gray-300">Category</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for product in low_stock_products %}
+                    <tr class="border-b hover:bg-gray-100">
+                        <td class="p-3 border border-gray-300">{{ product.name }}</td>
+                        <td class="p-3 border border-gray-300 text-red-600 font-bold">{{ product.stock_quantity }}</td>
+                        <td class="p-3 border border-gray-300">{{ product.category.name }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="3" class="p-3 text-center text-gray-500">All products are well stocked.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

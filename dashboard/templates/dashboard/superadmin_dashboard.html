@@ -4,117 +4,154 @@
 <div class="flex h-screen bg-gray-100">
     <!-- Sidebar -->
     <nav class="w-64 bg-gray-900 text-white fixed h-full">
-        <div class="p-5 text-xl font-bold border-b border-gray-700">
-            Superadmin Dashboard
-        </div>
-        <ul class="mt-5">
+        <div class="p-5 text-xl font-bold border-b border-gray-700">⚙️ Admin Dashboard</div>
+        <ul class="mt-5 space-y-2">
+            <li class="py-2 px-5 hover:bg-gray-700"><a href="{% url 'dashboard:superadmin_dashboard' %}">🏠 Dashboard
+                    Home</a></li>
+            <li class="py-2 px-5 hover:bg-gray-700"><a href="{% url 'dashboard:manager_list' %}">👤 Manage Managers</a>
+            </li>
+            <li class="py-2 px-5 hover:bg-gray-700"><a href="{% url 'sellers:seller_list' %}">👤 Manage Sellers</a></li>
+            <li class="py-2 px-5 hover:bg-gray-700"><a href="{% url 'shops:shop_list' %}">🏪 Manage Shops</a></li>
+            <li class="py-2 px-5 hover:bg-gray-700"><a href="{% url 'inventory:product_list' %}">📦 Inventory
+                    Overview</a></li>
+            <li class="py-2 px-5 hover:bg-gray-700"><a href="{% url 'sales:sales_list' %}">📊 Sales & Transactions</a>
+            </li>
+            <li class="py-2 px-5 hover:bg-gray-700"><a href="{% url 'expenses:expense_list' %}">📋 Expenses
+                    Management</a>
+            </li>
+            <li class="py-2 px-5 hover:bg-gray-700"><a href="">💰 Profit Analysis</a></li>
+            <li class="py-2 px-5 hover:bg-gray-700"><a href="">💳 Credit Sales Report</a></li>
+            <li class="py-2 px-5 hover:bg-gray-700"><a href="">📑 Balance Sheet</a></li>
             <li class="py-2 px-5 hover:bg-gray-700">
-                <a href="{% url 'dashboard:superadmin_dashboard' %}">🏠 Dashboard Home</a>
+                <a href="{% url 'shops:business_period_settings' %}">
+                    ⚙️ Business Period Settings
+                </a>
             </li>
-            <li class="py-2 px-5 hover:bg-gray-700">
-                <a href="{% url 'dashboard:manager_list' %}">👤 Manage Managers</a>
-            </li>
-            <li class="py-2 px-5 hover:bg-gray-700">
-                <a href="{% url 'sellers:seller_list' %}">👤 Manage Sellers</a>
-            </li>
-            <li class="py-2 px-5 hover:bg-gray-700">
-                <a href="{% url 'shops:shop_list' %}">🏪 Manage Shops</a>
-            </li>
-            <li class="py-2 px-5 hover:bg-gray-700">
-                <a href="{% url 'inventory:product_list' %}">📦 Inventory Overview</a>
-            </li>
-            <li class="py-2 px-5 hover:bg-gray-700">
-                <a href="{% url 'reports:sales_report' %}">📊 Sales Reports</a>
-            </li>
-            <li class="py-2 px-5 hover:bg-gray-700">
-                <a href="{% url 'reports:profit_analysis' %}">💰 Profit Analysis</a>
-            </li>
-            <li class="py-2 px-5 hover:bg-gray-700">
-                <a href="{% url 'notifications:get_notifications' %}">🔔 Notifications ({{ notifications.count }})</a>
-            </li>
-            <li class="py-2 px-5 hover:bg-red-600">
-                <a href="{% url 'accounts:logout' %}">🚪 Logout</a>
-            </li>
+            <li class="py-2 px-5 hover:bg-red-600"><a href="{% url 'accounts:logout' %}">🚪 Logout</a></li>
         </ul>
     </nav>
 
-    <!-- Content Area -->
-    <div class="ml-64 flex-1 p-10">
-        <h1 class="text-3xl font-bold">Welcome, {{ request.user.username }}</h1>
+    <!-- Main Content -->
+    <div class="ml-64 flex-1 p-10 space-y-10">
+        <h1 class="text-3xl font-bold">Welcome, {{ request.user.username }} 👋</h1>
 
-        <!-- Dashboard Stats -->
-        <div class="grid grid-cols-4 gap-5 mt-5">
-            <div class="bg-white p-5 shadow rounded-lg">
-                <h2 class="text-lg font-semibold">Total Sales</h2>
-                <p class="text-2xl font-bold text-blue-600">{{ total_sales }}</p>
+        <!-- Key Metrics Section -->
+        <div class="grid grid-cols-4 gap-5">
+            <div class="bg-blue-500 p-5 shadow rounded-lg text-white hover:shadow-lg transition">
+                <h2 class="text-lg font-semibold">📈 Total Sales</h2>
+                <p class="text-2xl font-bold">Kes {{ total_sales }}</p>
             </div>
-            <div class="bg-white p-5 shadow rounded-lg">
-                <h2 class="text-lg font-semibold">Total Profit</h2>
-                <p class="text-2xl font-bold text-green-600">KES{{ total_profit }}</p>
+            <div class="bg-green-500 p-5 shadow rounded-lg text-white hover:shadow-lg transition">
+                <h2 class="text-lg font-semibold">💰 Net Profit</h2>
+                <p class="text-2xl font-bold">Kes {{ total_profit }}</p>
             </div>
-            <div class="bg-white p-5 shadow rounded-lg">
-                <h2 class="text-lg font-semibold">Top Product</h2>
+            <div class="bg-yellow-500 p-5 shadow rounded-lg text-white hover:shadow-lg transition">
+                <h2 class="text-lg font-semibold">📦 Top Product</h2>
                 <p class="text-xl">{{ top_selling_product.name }}</p>
             </div>
-            <div class="bg-white p-5 shadow rounded-lg">
-                <h2 class="text-lg font-semibold">Shops Count</h2>
+            <div class="bg-gray-700 p-5 shadow rounded-lg text-white hover:shadow-lg transition">
+                <h2 class="text-lg font-semibold">🏪 Total Shops</h2>
                 <p class="text-2xl">{{ shops.count }}</p>
             </div>
         </div>
 
-        <!-- Notifications -->
-        <div class="bg-white p-5 mt-5 shadow rounded-lg">
-            <div class="p-6">
-                <h2 class="text-xl font-semibold mb-4">🔔 Notifications</h2>
-
-                <div class="bg-white shadow-md rounded-lg p-4">
-                    {% if notifications %}
-                    <ul class="divide-y divide-gray-200">
-                        {% for notification in notifications %}
-                        <li class="p-3 {% if not notification.is_read %}bg-gray-100{% endif %}">
-                            <p class="text-sm">{{ notification.message }}</p>
-                            <p class="text-xs text-gray-500">{{ notification.created_at|date:"F d, Y h:i A" }}</p>
-                            {% if not notification.is_read %}
-                            <a href="" class="text-blue-600 text-sm">Mark as
-                                read</a>
-                            {% endif %}
-                        </li>
-                        {% endfor %}
-                    </ul>
+        <!-- Stock Alerts & Performance Graph -->
+        <div class="grid grid-cols-2 gap-5">
+            <!-- Low Stock Products -->
+            <div class="bg-white p-5 shadow rounded-lg">
+                <h2 class="text-lg font-semibold text-red-600">⚠️ Low Stock Products</h2>
+                <ul class="mt-3 divide-y divide-gray-200">
+                    {% if low_stock_products %}
+                    {% for product in low_stock_products %}
+                    <li class="py-2 text-sm flex justify-between">
+                        <span class="text-gray-700 font-medium">{{ product.name }}</span>
+                        <span class="text-red-500 font-bold">{{ product.stock_quantity }}</span>
+                    </li>
+                    {% endfor %}
                     {% else %}
-                    <p class="text-gray-500">No notifications available.</p>
+                    <p class="text-gray-500 mt-2">✅ All products are well stocked.</p>
                     {% endif %}
+                </ul>
+            </div>
+
+
+            <!-- Sales Performance Graph -->
+            <div class="bg-white p-5 shadow rounded-lg">
+                <h2 class="text-lg font-semibold">📊 Sales & Profit Trends</h2>
+                <div class="relative w-full h-52 overflow-hidden">
+                    <canvas id="salesChart"></canvas>
                 </div>
             </div>
         </div>
 
-        <!-- Sales & Profit Trends (Chart.js) -->
-        <div class="bg-white p-5 mt-5 shadow rounded-lg">
-            <h2 class="text-lg font-semibold">Sales & Profit Trends</h2>
-            <canvas id="salesChart"></canvas>
+        <!-- Recent Transactions -->
+        <div class="bg-white p-5 shadow rounded-lg">
+            <h2 class="text-lg font-semibold">🔄 Recent Transactions</h2>
+            <table class="w-full mt-3 border-collapse">
+                <thead>
+                    <tr class="bg-gray-200">
+                        <th class="text-left p-2">Customer</th>
+                        <th class="text-left p-2">Amount</th>
+                        <th class="text-left p-2">Status</th>
+                        <th class="text-left p-2">Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sale in recent_sales %}
+                    <tr class="border-b">
+                        <td class="p-2">{{ sale.customer_name }}</td>
+                        <td class="p-2">Kes {{ sale.total_amount }}</td>
+                        <td class="p-2">
+                            {% if sale.payment_status == 'paid' %}
+                            <span class="text-green-600 font-semibold">Paid</span>
+                            {% elif sale.payment_status == 'partial' %}
+                            <span class="text-yellow-600 font-semibold">Partial</span>
+                            {% else %}
+                            <span class="text-red-600 font-semibold">Credit</span>
+                            {% endif %}
+                        </td>
+                        <td class="p-2">{{ sale.date|date:"M d, Y" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="p-3 text-gray-500 text-center">No recent transactions.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
+
     </div>
 </div>
 
+<!-- Chart.js for Sales Performance -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    // Chart.js Integration
-    var ctx = document.getElementById('salesChart').getContext('2d');
-    var salesChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: {{ sales_trends.labels | safe }},
-    datasets: [{
-        label: 'Sales',
-        data: {{ sales_trends.sales_data | safe }},
-        borderColor: 'blue',
+    document.addEventListener("DOMContentLoaded", function () {
+        const ctx = document.getElementById('salesChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: {{ sales_trends.labels | safe }},
+        datasets: [{
+            label: 'Sales',
+            data: {{ sales_trends.sales_data | safe }},
+        borderColor: '#3b82f6',
         borderWidth: 2
             }, {
-        label: 'Profit',
-        data: {{ sales_trends.profit_data | safe }},
-        borderColor: 'green',
+            label: 'Profit',
+            data: {{ sales_trends.profit_data | safe }},
+        borderColor: '#10b981',
         borderWidth: 2
             }]
-        }
+        },
+        options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: { legend: { display: true } },
+        scales: { y: { beginAtZero: true } }
+    }
     });
+});
 </script>
 {% endblock %}

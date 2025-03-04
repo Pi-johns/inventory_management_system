@@ -1,0 +1,92 @@
+{% extends 'base/base.html' %}
+
+{% block content %}
+<div class="flex h-screen bg-gray-100">
+    <!-- Sidebar -->
+    <nav class="w-64 bg-gray-900 text-white fixed h-full">
+        <div class="p-5 text-xl font-bold border-b border-gray-700">
+            💰 Expense Management
+        </div>
+        <ul class="mt-5 space-y-2">
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="{% url 'expenses:expense_list' %}">📋 Expense List</a>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- Main Content Area -->
+    <div class="ml-64 flex-1 p-10">
+        <h1 class="text-3xl font-bold mb-6">💰 Enter Business Expense</h1>
+
+        <section class="bg-white p-6 shadow rounded-lg">
+            <h2 class="text-2xl font-semibold mb-4">Fill in Expense Details</h2>
+
+            <form method="POST" id="expenseForm">
+                {% csrf_token %}
+
+                <label class="block mb-2 font-semibold">📝 Description</label>
+                <input type="text" name="description" id="description" required
+                    class="w-full px-4 py-2 border rounded focus:ring focus:ring-blue-300">
+
+                <label class="block mt-4 mb-2 font-semibold">💲 Amount</label>
+                <input type="number" name="amount" id="amount" min="0" step="0.01" required
+                    class="w-full px-4 py-2 border rounded focus:ring focus:ring-blue-300">
+
+                <label class="block mt-4 mb-2 font-semibold">📂 Category</label>
+                <select name="category" id="category" required
+                    class="w-full px-4 py-2 border rounded focus:ring focus:ring-blue-300">
+                    <option value="RENT">🏠 Rent</option>
+                    <option value="UTILITIES">💡 Utilities</option>
+                    <option value="SUPPLIES">📦 Supplies</option>
+                    <option value="SALARIES">💼 Salaries</option>
+                    <option value="DAMAGED_GOODS">🚨 Loss Due to Damage</option>
+                    <option value="OTHER">🔹 Other</option>
+                </select>
+
+                <!-- SweetAlert2 Confirmation -->
+                <button type="button" onclick="confirmExpense()"
+                    class="mt-4 bg-green-600 text-white px-5 py-2 rounded hover:bg-green-700 transition">
+                    ✅ Submit Expense
+                </button>
+                <a href="{% url 'expenses:expense_list' %}" class="ml-3 text-gray-600 hover:text-gray-800">Cancel</a>
+            </form>
+        </section>
+    </div>
+</div>
+
+<!-- Include SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<!-- JavaScript for SweetAlert2 Confirmation -->
+<script>
+    function confirmExpense() {
+        let description = document.getElementById("description").value;
+        let amount = document.getElementById("amount").value;
+        let category = document.getElementById("category").options[document.getElementById("category").selectedIndex].text;
+
+        if (!description || amount <= 0) {
+            Swal.fire({
+                icon: "error",
+                title: "Oops...",
+                text: "Please enter a valid description and amount!",
+            });
+            return;
+        }
+
+        Swal.fire({
+            title: "Confirm Expense",
+            text: `Are you sure you want to record "${description}" for $${amount} under ${category}?`,
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#28a745",
+            cancelButtonColor: "#3085d6",
+            confirmButtonText: "Yes, submit expense!",
+        }).then((result) => {
+            if (result.isConfirmed) {
+                document.getElementById("expenseForm").submit();
+            }
+        });
+    }
+</script>
+
+{% endblock %}

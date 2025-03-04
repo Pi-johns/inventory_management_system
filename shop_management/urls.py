@@ -30,5 +30,5 @@ urlpatterns = [
     path('reports/', include('reports.urls')),  # ✅ Include reports app URLs
     path('notifications/', include('notifications.urls')),  # ✅ Include notifications app URLs
     path('sellers/', include('sellers.urls')),  # ✅ Include sellers app URLs
-
+    path("expenses/", include("expenses.urls")),  # Ensure this is included
 ]

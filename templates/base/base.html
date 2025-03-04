@@ -11,60 +11,203 @@
 
 <body class="bg-gray-100">
 
-    <div class="flex h-screen">
-        <!-- Sidebar -->
-        <nav class="w-64 bg-gray-800 text-white fixed h-full p-4">
-            <h2 class="text-xl font-bold mb-4">Shop Management</h2>
+    <!-- Large Devices Header -->
+    <header
+        class="hidden md:flex md:items-center md:justify-between bg-gray-800 text-white fixed top-0 left-0 right-0 p-4 z-10">
+        <div>
+            <h2 class="text-xl font-bold">Shop Management</h2>
+
+            <!-- Notifications Dropdown -->
+            <div id="notification-panel"
+                class="hidden absolute right-0 mt-2 w-64 bg-white shadow-lg rounded-lg p-2 text-gray-900">
+                <h3 class="text-sm font-semibold border-b pb-2">Recent Notifications</h3>
+                <div id="notifications-container" class="max-h-60 overflow-y-auto">
+                    {% for notification in notifications %}
+                    <div class="p-2 border-b hover:bg-gray-100">
+                        <p class="text-sm">{{ notification.message }}</p>
+                        <span class="text-xs text-gray-500">{{ notification.created_at|timesince }} ago</span>
+                    </div>
+                    {% empty %}
+                    <p class="text-sm text-gray-500 p-2">No new notifications</p>
+                    {% endfor %}
+                </div>
+                <!-- View All Button -->
+                <div class="text-center mt-2">
+                    <a href="{% url 'notifications:all_notifications' %}"
+                        class="text-blue-600 hover:underline text-sm font-semibold">View All</a>
+                </div>
+            </div>
+        </div>
+        <nav>
 
             {% if user.role == "superadmin" %}
-            <h3 class="text-sm uppercase text-gray-400">Admin Panel</h3>
-            <ul class="mt-2">
+            <ul class="flex space-x-4">
+                <li><a href="{% url 'dashboard:superadmin_dashboard' %}"
+                        class="hover:bg-gray-700 py-2 px-4 rounded">Dashboard</a></li>
+                <li><a href="{% url 'shops:shop_list' %}" class="hover:bg-gray-700 py-2 px-4 rounded">Manage Shops</a>
+                </li>
+                <li><a href="{% url 'inventory:product_list' %}" class="hover:bg-gray-700 py-2 px-4 rounded">Stock
+                        Overview</a></li>
+                <li><a href="" class="hover:bg-gray-700 py-2 px-4 rounded">Sales
+                        Reports</a></li>
+            </ul>
+            {% elif user.role == "manager" %}
+            <ul class="flex space-x-4">
+                <li><a href="{% url 'dashboard:manager_dashboard' %}"
+                        class="hover:bg-gray-700 py-2 px-4 rounded">Dashboard</a></li>
+                <li><a href="{% url 'shops:shop_list' %}" class="hover:bg-gray-700 py-2 px-4 rounded">Manage Shops</a>
+                </li>
+                <li><a href="{% url 'inventory:add_product' %}" class="hover:bg-gray-700 py-2 px-4 rounded">Add
+                        Stock</a></li>
+                <li><a href="" class="hover:bg-gray-700 py-2 px-4 rounded">Profit
+                        Reports</a></li>
+            </ul>
+            {% elif user.role == "seller" %}
+            <ul class="flex space-x-4">
+                <li><a href="{% url 'sellers:seller_dashboard' %}"
+                        class="hover:bg-gray-700 py-2 px-4 rounded">Dashboard</a></li>
+                <li><a href="{% url 'sellers:seller_create_sale' %}" class="hover:bg-gray-700 py-2 px-4 rounded">Record
+                        Sale</a>
+                </li>
+            </ul>
+            {% endif %}
+        </nav>
+        <div>
+            <!-- 🔔 Notifications Bell -->
+
+            <button id="notification-button" class="relative focus:outline-none text-2xl">
+                🔔
+                {% if unread_notifications_count > 0 %}
+                <span
+                    class="absolute top-0 right-0 transform translate-x-1 translate-y-1 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">
+                    {{ unread_notifications_count }}
+                </span>
+                {% else %}
+                <span
+                    class="absolute top-0 right-0 transform translate-x-1 translate-y-1 bg-green-400 text-white text-xs px-1.5 py-0.5 rounded-full">0</span>
+                {% endif %}
+            </button>
+        </div>
+    </header>
+
+    <!-- Small Devices Header with Hamburger Menu -->
+    <header class="md:hidden bg-gray-800 text-white fixed top-0 left-0 right-0 p-4 z-10">
+        <div class="flex items-center justify-between">
+            <h2 class="text-xl font-bold">Shop Management</h2>
+            <!-- Hamburger Menu Button -->
+            <button id="mobile-menu-button" class="focus:outline-none">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16">
+                    </path>
+                </svg>
+            </button>
+        </div>
+        <!-- Dropdown Menu, hidden by default -->
+        <nav id="mobile-menu" class="hidden mt-2">
+            {% if user.role == "superadmin" %}
+            <ul>
                 <li><a href="{% url 'dashboard:superadmin_dashboard' %}"
                         class="block py-2 px-4 hover:bg-gray-700">Dashboard</a></li>
-                </li>
                 <li><a href="{% url 'shops:shop_list' %}" class="block py-2 px-4 hover:bg-gray-700">Manage Shops</a>
                 </li>
                 <li><a href="{% url 'inventory:product_list' %}" class="block py-2 px-4 hover:bg-gray-700">Stock
                         Overview</a></li>
-                <li><a href="{% url 'sales:sales_dashboard' %}" class="block py-2 px-4 hover:bg-gray-700">Sales
-                        Reports</a>
-                </li>
+                <li><a href="" class="block py-2 px-4 hover:bg-gray-700">Sales
+                        Reports</a></li>
             </ul>
             {% elif user.role == "manager" %}
-            <h3 class="text-sm uppercase text-gray-400">Manager Panel</h3>
-            <ul class="mt-2">
+            <ul>
                 <li><a href="{% url 'dashboard:manager_dashboard' %}"
-                        class="block py-2 px-4 hover:bg-gray-700">Dashboard</a>
-                </li>
+                        class="block py-2 px-4 hover:bg-gray-700">Dashboard</a></li>
                 <li><a href="{% url 'shops:shop_list' %}" class="block py-2 px-4 hover:bg-gray-700">Manage Shops</a>
                 </li>
                 <li><a href="{% url 'inventory:add_product' %}" class="block py-2 px-4 hover:bg-gray-700">Add Stock</a>
                 </li>
-                <li><a href="{% url 'reports:profit_analysis' %}" class="block py-2 px-4 hover:bg-gray-700">Profit
+                <li><a href="" class="block py-2 px-4 hover:bg-gray-700">Profit
                         Reports</a></li>
             </ul>
             {% elif user.role == "seller" %}
-            <h3 class="text-sm uppercase text-gray-400">Seller Panel</h3>
-            <ul class="mt-2">
+            <ul>
                 <li><a href="{% url 'sellers:seller_dashboard' %}"
-                        class="block py-2 px-4 hover:bg-gray-700">Dashboard</a>
+                        class="block py-2 px-4 hover:bg-gray-700">Dashboard</a></li>
+                <li><a href="" class="block py-2 px-4 hover:bg-gray-700">Record Sale</a>
                 </li>
-                <li><a href="{% url 'sales:record_sale' %}" class="block py-2 px-4 hover:bg-gray-700">Record Sale</a>
-                </li>
-
             </ul>
             {% endif %}
 
-            <a href="{% url 'accounts:logout' %}" class="block py-2 px-4 mt-4 bg-red-500 text-center">Logout</a>
+            <a href="{% url 'accounts:logout' %}" class="block py-2 px-4 mt-2 bg-red-500 text-center">Logout</a>
         </nav>
+    </header>
 
-        <!-- Main Content -->
-        <div class="flex-1 ml-64 p-6">
-            {% block content %}
-            {% endblock %}
-        </div>
+    <!-- Main Content -->
+    <div class="pt-20 md:pt-16 pb-16">
+        {% block content %}
+        {% endblock %}
     </div>
 
+    <!-- Sticky Footer Nav for Small Devices -->
+    <footer
+        class="md:hidden fixed bottom-0 left-0 right-0 bg-gray-800 text-white flex justify-around items-center p-2 z-10">
+        <!-- Example icons; update links/icons as needed -->
+        <a href="{% url 'dashboard:superadmin_dashboard' %}" class="flex flex-col items-center">
+            <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M3 12l2-2m0 0l7-7 7 7M13 5v6h6"></path>
+            </svg>
+            <span class="text-xs">Dashboard</span>
+        </a>
+        <a href="{% url 'shops:shop_list' %}" class="flex flex-col items-center">
+            <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7h18M3 12h18M3 17h18">
+                </path>
+            </svg>
+            <span class="text-xs">Shops</span>
+        </a>
+        <a href="{% url 'sellers:seller_create_sale' %}" class="flex flex-col items-center">
+            <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3"></path>
+            </svg>
+            <span class="text-xs">Sales</span>
+        </a>
+        <!-- Add more icons/links as needed -->
+    </footer>
+
+    <script>
+        // Toggle mobile dropdown menu
+        document.getElementById('mobile-menu-button').addEventListener('click', function () {
+            var menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+        });
+    </script>
+    <!-- JavaScript for Notifications & Click-to-Close -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const notificationButton = document.getElementById('notification-button');
+            const notificationPanel = document.getElementById('notification-panel');
+
+            notificationButton.addEventListener('click', function (event) {
+                event.stopPropagation();
+                notificationPanel.classList.toggle('hidden');
+            });
+
+            // Close dropdown if clicked outside
+            document.addEventListener('click', function (event) {
+                if (!notificationPanel.contains(event.target) && !notificationButton.contains(event.target)) {
+                    notificationPanel.classList.add('hidden');
+                }
+            });
+
+            // Toggle mobile menu
+            document.getElementById('mobile-menu-button').addEventListener('click', function () {
+                document.getElementById('mobile-menu').classList.toggle('hidden');
+            });
+        });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </body>
 
 </html>

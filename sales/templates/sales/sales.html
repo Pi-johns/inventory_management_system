@@ -1,58 +1,335 @@
 {% extends 'base/base.html' %}
-
+{% load filters %}
 {% block content %}
 <div class="flex h-screen bg-gray-100">
+
     <!-- Sidebar -->
     <nav class="w-64 bg-gray-900 text-white fixed h-full">
         <div class="p-5 text-xl font-bold border-b border-gray-700">
-            🛒 Sales Overview
+            🛒 Sales Management
         </div>
         <ul class="mt-5 space-y-2">
             <li class="py-2 px-5 hover:bg-gray-700">
-                <a href="#sales_list">📋 Sales List</a>
+                <a href="{% url 'sales:sales_list' %}">📋 Sales List</a>
             </li>
+
             <li class="py-2 px-5 hover:bg-gray-700">
-                <a href="#export_reports">📤 Export Reports</a>
+                {% if request.user.is_superuser or "Manager" in request.user.groups.all|join:", " %}
+                <a href="{% url 'sales:manager_record_sale' %}" class="w-full text-left block">
+                    ➕ Record Sale
+                </a>
+                {% elif request.user.seller %}
+                <a href="{% url 'sellers:seller_create_sale' %}" class="w-full text-left block">
+                    ➕ Record Sale seller
+                </a>
+                {% else %}
+                <span class="w-full text-left block text-gray-500 cursor-not-allowed">
+                    ❌ No Permission
+                </span>
+                {% endif %}
             </li>
+
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="{% url 'sales:credit_sales' %}">💳 Credit Sales</a>
+            </li>
+
+
         </ul>
     </nav>
 
     <!-- Right Content Area -->
-    <div class="ml-64 flex-1 p-10 overflow-y-auto">
-        <h1 class="text-3xl font-bold mb-6">🛒 Sales Overview Dashboard</h1>
+    <div class="ml-64 flex-1 p-6 overflow-auto">
+        <h1 class="text-3xl font-bold mb-6">📊 Sales Overview</h1>
+        <!-- Sales Summary Section (Only for Managers and Super Admins) -->
+        {% if user.role in "manager,superadmin" %}
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
+
+            <!-- Total Sales Count -->
+            <div
+                class="flex items-center bg-blue-600 text-white px-3 py-2 rounded-md shadow-md w-full transform transition duration-300 hover:scale-105 hover:shadow-lg">
+                <span class="text-xl">📦</span>
+                <div class="ml-2">
+                    <h2 class="text-xs font-semibold">Total Sales</h2>
+                    <p class="text-lg font-bold">KES {{ total_sales_amount|floatformat:2 }}</p>
+                    <p class="text-sm">({{ total_sales_count }} sales)</p>
+                </div>
+            </div>
+
+            <!-- Total Cash Sales -->
+            <div
+                class="flex items-center bg-green-600 text-white px-3 py-2 rounded-md shadow-md w-full transform transition duration-300 hover:scale-105 hover:shadow-lg">
+                <span class="text-xl">💵</span>
+                <div class="ml-2">
+                    <h2 class="text-xs font-semibold">Total Cash Sales</h2>
+                    <p class="text-lg font-bold">KES {{ total_cash_sales|floatformat:2 }}</p>
+                </div>
+            </div>
+
+            <!-- Total Credit Sales -->
+            <div
+                class="flex items-center bg-red-600 text-white px-3 py-2 rounded-md shadow-md w-full transform transition duration-300 hover:scale-105 hover:shadow-lg">
+                <span class="text-xl">📝</span>
+                <div class="ml-2">
+                    <h2 class="text-xs font-semibold">Total Credit Sales</h2>
+                    <p class="text-lg font-bold">KES {{ total_credit_sales|floatformat:2 }}</p>
+                </div>
+            </div>
+
+            <!-- Partial Payments Profit -->
+            <div
+                class="flex items-center bg-purple-600 text-white px-3 py-2 rounded-md shadow-md w-full transform transition duration-300 hover:scale-105 hover:shadow-lg">
+                <span class="text-xl">⚖️</span>
+                <div class="ml-2">
+                    <h2 class="text-xs font-semibold">Partial Payments Profit</h2>
+                    <p class="text-lg font-bold">KES {{ total_partial_profit|floatformat:2 }}</p>
+                </div>
+            </div>
+
+            <!-- Unrealized Credit Profit -->
+            <div
+                class="flex items-center bg-gray-700 text-white px-3 py-2 rounded-md shadow-md w-full transform transition duration-300 hover:scale-105 hover:shadow-lg">
+                <span class="text-xl">🕒</span>
+                <div class="ml-2">
+                    <h2 class="text-xs font-semibold">Unrealized Credit Profit</h2>
+                    <p class="text-lg font-bold">KES {{ total_credit_unrealized_profit|floatformat:2 }}</p>
+                </div>
+            </div>
+
+            <!-- Net Profit -->
+            <div
+                class="flex items-center bg-yellow-500 text-white px-3 py-2 rounded-md shadow-md w-full transform transition duration-300 hover:scale-105 hover:shadow-lg">
+                <span class="text-xl">📈</span>
+                <div class="ml-2">
+                    <h2 class="text-xs font-semibold">Net Profit</h2>
+                    <p class="text-lg font-bold">KES {{ net_profit|floatformat:2 }}</p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
+            {% for shop in shops %}
+            {% if user.role == "seller" and user.shop_id == shop.id %}
+            <div
+                class="bg-white rounded-md shadow-md w-full p-3 transform transition duration-300 hover:scale-105 hover:shadow-lg">
+                <!-- Shop Name -->
+                <h2 class="text-sm font-semibold text-gray-800 flex items-center">
+                    🏪 {{ shop.name }}
+                </h2>
+
+                <!-- Sellers in the Shop -->
+                <div class="text-xs text-gray-600 mt-1">
+                    <strong>Sellers:</strong>
+                    {% for seller in shop.sellers.all %}
+                    <p class="text-gray-700">👤 {{ seller.name }}</p>
+                    {% empty %}
+                    <p class="text-gray-500 italic">No sellers assigned</p>
+                    {% endfor %}
+                </div>
+
+                <!-- Sales Details -->
+                <div class="flex flex-col gap-2 mt-3">
+
+                    <!-- Total Sales -->
+                    <div class="flex items-center bg-blue-600 text-white px-3 py-2 rounded-md shadow-md">
+                        <span class="text-xl">📦</span>
+                        <div class="ml-2">
+                            <h2 class="text-xs font-semibold">Total Sales</h2>
+                            <p class="text-lg font-bold">
+                                KES {{ sales_per_shop|get_item:shop.id|floatformat:2|default:"0.00" }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Credit Sales -->
+                    <div class="flex items-center bg-green-600 text-white px-3 py-2 rounded-md shadow-md">
+                        <span class="text-xl">🛒</span>
+                        <div class="ml-2">
+                            <h2 class="text-xs font-semibold">Credit Sales</h2>
+                            <p class="text-lg font-bold">
+                                KES {{ credit_per_shop|get_item:shop.id|floatformat:2|default:"0.00" }}
+                            </p>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+            {% elif user.role == "manager" or user.role == "superadmin" %}
+            <div
+                class="bg-white rounded-md shadow-md w-full p-3 transform transition duration-300 hover:scale-105 hover:shadow-lg">
+                <h2 class="text-sm font-semibold text-gray-800 flex items-center">
+                    🏪 {{ shop.name }}
+                </h2>
+
+                <div class="text-xs text-gray-600 mt-1">
+                    <strong>Sellers:</strong>
+                    {% for seller in shop.sellers.all %}
+                    <p class="text-gray-700">👤 {{ seller.name }}</p>
+                    {% empty %}
+                    <p class="text-gray-500 italic">No sellers assigned</p>
+                    {% endfor %}
+                </div>
+
+                <div class="flex flex-col gap-2 mt-3">
+                    <div class="flex items-center bg-blue-600 text-white px-3 py-2 rounded-md shadow-md">
+                        <span class="text-xl">📦</span>
+                        <div class="ml-2">
+                            <h2 class="text-xs font-semibold">Total Sales</h2>
+                            <p class="text-lg font-bold">
+                                KES {{ sales_per_shop|get_item:shop.id|floatformat:2|default:"0.00" }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center bg-green-600 text-white px-3 py-2 rounded-md shadow-md">
+                        <span class="text-xl">🛒</span>
+                        <div class="ml-2">
+                            <h2 class="text-xs font-semibold">Credit Sales</h2>
+                            <p class="text-lg font-bold">
+                                KES {{ credit_per_shop|get_item:shop.id|floatformat:2|default:"0.00" }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
+            {% for shop in shops %}
+            {% if user.role == "seller" and user.shop_id == shop.id %}
+            <div
+                class="bg-white rounded-md shadow-md w-full p-3 transform transition duration-300 hover:scale-105 hover:shadow-lg">
+                <!-- Shop Name -->
+                <h2 class="text-sm font-semibold text-gray-800 flex items-center">
+                    🏪 {{ shop.name }}
+                </h2>
+
+                <!-- Sellers in the Shop -->
+                <div class="text-xs text-gray-600 mt-1">
+                    <strong>Sellers:</strong>
+                    {% for seller in shop.sellers.all %}
+                    <p class="text-gray-700">👤 {{ seller.name }}</p>
+                    {% empty %}
+                    <p class="text-gray-500 italic">No sellers assigned</p>
+                    {% endfor %}
+                </div>
+
+                <!-- Sales Details -->
+                <div class="flex flex-col gap-2 mt-3">
+
+                    <!-- Total Sales -->
+                    <div class="flex items-center bg-blue-600 text-white px-3 py-2 rounded-md shadow-md">
+                        <span class="text-xl">📦</span>
+                        <div class="ml-2">
+                            <h2 class="text-xs font-semibold">Total Sales</h2>
+                            <p class="text-lg font-bold">
+                                KES {{ sales_per_shop|get_item:shop.id|floatformat:2|default:"0.00" }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Credit Sales -->
+                    <div class="flex items-center bg-green-600 text-white px-3 py-2 rounded-md shadow-md">
+                        <span class="text-xl">🛒</span>
+                        <div class="ml-2">
+                            <h2 class="text-xs font-semibold">Credit Sales</h2>
+                            <p class="text-lg font-bold">
+                                KES {{ credit_per_shop|get_item:shop.id|floatformat:2|default:"0.00" }}
+                            </p>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+            {% elif user.role == "manager" or user.role == "superadmin" %}
+            <div
+                class="bg-white rounded-md shadow-md w-full p-3 transform transition duration-300 hover:scale-105 hover:shadow-lg">
+                <h2 class="text-sm font-semibold text-gray-800 flex items-center">
+                    🏪 {{ shop.name }}
+                </h2>
+
+                <div class="text-xs text-gray-600 mt-1">
+                    <strong>Sellers:</strong>
+                    {% for seller in shop.sellers.all %}
+                    <p class="text-gray-700">👤 {{ seller.name }}</p>
+                    {% empty %}
+                    <p class="text-gray-500 italic">No sellers assigned</p>
+                    {% endfor %}
+                </div>
+
+                <div class="flex flex-col gap-2 mt-3">
+                    <div class="flex items-center bg-blue-600 text-white px-3 py-2 rounded-md shadow-md">
+                        <span class="text-xl">📦</span>
+                        <div class="ml-2">
+                            <h2 class="text-xs font-semibold">Total Sales</h2>
+                            <p class="text-lg font-bold">
+                                KES {{ sales_per_shop|get_item:shop.id|floatformat:2|default:"0.00" }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center bg-green-600 text-white px-3 py-2 rounded-md shadow-md">
+                        <span class="text-xl">🛒</span>
+                        <div class="ml-2">
+                            <h2 class="text-xs font-semibold">Credit Sales</h2>
+                            <p class="text-lg font-bold">
+                                KES {{ credit_per_shop|get_item:shop.id|floatformat:2|default:"0.00" }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+
 
         <!-- Filters Section -->
-        <section id="filters" class="mb-6 bg-white p-5 shadow rounded-lg">
+        <section id="filters" class="mb-6 bg-white p-5 shadow-md rounded-lg">
             <h2 class="text-xl font-bold mb-4">🔍 Filter Sales</h2>
             <form method="GET" action="" class="grid grid-cols-4 gap-4">
 
-
-
-
                 <!-- Date Filter -->
+                {% if filters.date_filter %}
                 <input type="date" name="date" value="{{ request.GET.date }}" class="border rounded px-3 py-2">
+                {% endif %}
 
                 <!-- Shop Filter -->
+                {% if filters.shop_filter %}
                 <select name="shop" class="border rounded px-3 py-2">
                     <option value="">-- Select Shop --</option>
                     {% for shop in shops %}
-
-                    {{ shop.name }}
-
+                    {% if request.GET.shop and request.GET.shop|stringformat:"s" == shop.id|stringformat:"s" %}
+                    <option value="{{ shop.id }}" selected>{{ shop.name }}</option>
+                    {% else %}
+                    <option value="{{ shop.id }}">{{ shop.name }}</option>
+                    {% endif %}
                     {% endfor %}
                 </select>
+                {% endif %}
 
                 <!-- Seller Filter -->
+                {% if filters.seller_filter %}
                 <select name="seller" class="border rounded px-3 py-2">
                     <option value="">-- Select Seller --</option>
                     {% for seller in sellers %}
-
-                    {{ seller.username }}
-
+                    {% if request.GET.seller and request.GET.seller|stringformat:"s" == seller.id|stringformat:"s" %}
+                    <option value="{{ seller.id }}" selected>{{ seller.username }}</option>
+                    {% else %}
+                    <option value="{{ seller.id }}">{{ seller.username }}</option>
+                    {% endif %}
                     {% endfor %}
                 </select>
+                {% endif %}
 
-                <!-- Submit & Reset Buttons -->
+                <!-- Search Filter -->
+                {% if filters.search_filter %}
+                <input type="text" name="q" placeholder="Search Customer Name..." value="{{ request.GET.q }}"
+                    class="border rounded px-3 py-2">
+                {% endif %}
+
+                <!-- Buttons -->
                 <div class="col-span-4 flex gap-2">
                     <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded">🔍 Apply Filter</button>
                     <a href="{% url 'sales:sales_list' %}" class="bg-gray-500 text-white px-4 py-2 rounded">❌ Reset</a>
@@ -61,62 +338,148 @@
         </section>
 
 
-        <!-- Sales List Section -->
-        <section id="sales_list" class="mb-12">
-            <h2 class="text-2xl font-bold mb-4">📋 Sales List</h2>
-            <div class="bg-white p-5 shadow rounded-lg">
-                <table class="w-full border-collapse border border-gray-300">
-                    <thead>
-                        <tr class="bg-gray-200">
-                            <th class="border px-4 py-2">#</th>
-                            <th class="border px-4 py-2">Product Name</th>
-                            <th class="border px-4 py-2">Quantity</th>
-                            <th class="border px-4 py-2">Price per Piece</th>
-                            <th class="border px-4 py-2">Total Amount</th>
-                            <th class="border px-4 py-2">Amount Paid</th>
-                            <th class="border px-4 py-2">Balance</th>
-                            <th class="border px-4 py-2">Customer</th>
-                            <th class="border px-4 py-2">Phone</th>
-                            <th class="border px-4 py-2">Seller</th>
-                            <th class="border px-4 py-2">Shop</th>
-                            <th class="border px-4 py-2">Date</th>
-                            <th class="border px-4 py-2">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for sale in sales %}
-                        <tr class="hover:bg-gray-100">
-                            <td class="border px-4 py-2">{{ forloop.counter }}</td>
-                            <td class="border px-4 py-2">{{ sale.product.name }}</td>
-                            <td class="border px-4 py-2">{{ sale.quantity }}</td>
-                            <td class="border px-4 py-2">Kes {{ sale.price_per_piece }}</td>
-                            <td class="border px-4 py-2">Kes {{ sale.total_amount }}</td>
-                            <td class="border px-4 py-2">Kes {{ sale.amount_paid }}</td>
-                            <td class="border px-4 py-2">Kes {{ sale.balance }}</td>
-                            <td class="border px-4 py-2">{{ sale.customer_name }}</td>
-                            <td class="border px-4 py-2">{{ sale.customer_phone }}</td>
-                            <td class="border px-4 py-2">{{ sale.seller.username }}</td>
-                            <td class="border px-4 py-2">{{ sale.shop.name }}</td>
-                            <td class="border px-4 py-2">{{ sale.date }}</td>
-                            <td class="border px-4 py-2 text-center space-x-1">
-                                <a href="{% url 'sales:sale_edit' sale.id %}"
-                                    class="bg-blue-500 text-white px-2 py-1 rounded">✏️ Edit</a>
-                                <a href="{% url 'sales:sale_delete' sale.id %}"
-                                    class="bg-red-500 text-white px-2 py-1 rounded"
-                                    onclick="return confirm('Are you sure you want to delete this sale?')">🗑️
-                                    Delete</a>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="13" class="text-center py-2">No sales recorded.</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </section>
-    </div>
-</div>
 
+
+
+        <!-- Sales List Header -->
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-2xl font-bold">📋 Sales List</h2>
+            <form method="GET" class="flex items-center gap-2">
+                <input type="text" name="q" placeholder="Search by Customer Name" class="border rounded px-3 py-2 w-64"
+                    value="{{ request.GET.q }}">
+                <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded">🔎 Search</button>
+            </form>
+        </div>
+
+        <!-- Scrollable Sales Table -->
+        <div class="bg-white shadow-md rounded-lg overflow-x-auto max-h-[500px] overflow-y-auto">
+            <table class="min-w-full table-auto border-collapse">
+                <thead class="bg-gray-800 text-white">
+                    <tr>
+                        <th class="px-4 py-3 text-left">#</th>
+                        <th class="px-4 py-3 text-left">Product</th>
+                        <th class="px-4 py-3 text-left">No. of Pieces</th>
+                        <th class="px-4 py-3 text-left">Price per Piece</th>
+                        <th class="px-4 py-3 text-left">Total Amount</th>
+                        <th class="px-4 py-3 text-left">Amount Paid</th>
+                        <th class="px-4 py-3 text-left">Balance</th>
+                        <th class="px-4 py-3 text-left">Payment Status</th>
+                        <th class="px-4 py-3 text-left">Customer Name</th>
+                        <th class="px-4 py-3 text-left">Customer Phone</th>
+
+                        {% if request.user.is_superuser or request.user.is_manager %}
+                        <th class="px-4 py-3 text-left">Seller</th>
+                        <th class="px-4 py-3 text-left">Shop</th>
+                        {% endif %}
+
+                        <th class="px-4 py-3 text-left">Sale Date</th>
+                        <th class="px-4 py-3 text-left">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for sale in sales %}
+                    <tr class="hover:bg-gray-100">
+                        <td class="px-4 py-3">{{ forloop.counter }}</td>
+
+                        <td class="px-4 py-3">
+                            <ul>
+                                {% for item in sale.items.all %}
+                                <li>{{ item.product.name }}</li>
+                                {% endfor %}
+                            </ul>
+                        </td>
+                        <td class="px-4 py-3">
+                            <ul>
+                                {% for item in sale.items.all %}
+                                <li>{{ item.quantity }}</li>
+                                {% endfor %}
+                            </ul>
+                        </td>
+                        <td class="px-4 py-3">
+                            <ul>
+                                {% for item in sale.items.all %}
+                                <li>{{ item.price }}</li>
+                                {% endfor %}
+                            </ul>
+                        </td>
+
+                        <td class="px-4 py-3 font-semibold">
+                            <ul>
+                                {% for item in sale.items.all %}
+                                <li>{{ item.total_price }}</li>
+                                {% endfor %}
+                            </ul>
+                        </td>
+
+                        <td class="px-4 py-3">{{ sale.amount_paid }}</td>
+                        <td class="px-4 py-3 {% if sale.balance > 0 %}text-red-500{% else %}text-green-500{% endif %}">
+                            {{ sale.balance }}
+                        </td>
+                        <td class="px-4 py-3">
+                            {% if sale.payment_status|lower == "paid" %}
+                            <span class="bg-green-500 text-white px-2 py-1 rounded">Paid</span>
+                            {% elif sale.payment_status|lower == "partial" %}
+                            <span class="bg-yellow-500 text-white px-2 py-1 rounded">Partial</span>
+                            {% else %}
+                            <span class="bg-red-500 text-white px-2 py-1 rounded">Credit</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3">{{ sale.customer_name }}</td>
+                        <td class="px-4 py-3">{{ sale.customer_phone }}</td>
+
+                        {% if request.user.is_superuser or request.user.is_manager %}
+                        <td class="px-4 py-3">{{ sale.seller }}</td>
+                        <td class="px-4 py-3">{{ sale.shop }}</td>
+                        {% endif %}
+
+                        <td class="px-4 py-3">{{ sale.sale_date }}</td>
+                        <td class="px-4 py-3">
+                            {% if request.user == sale.seller or request.user.is_superuser or request.user.is_manager %}
+                            <a href="{% url 'sellers:edit_sale' sale.id %}"
+                                class="bg-blue-500 text-white px-3 py-1 rounded">
+                                ✏️ Edit
+                            </a>
+
+                            <button style="margin-top: 5px;" onclick="confirmDelete({{ sale.id }})"
+                                class="bg-red-500 text-white px-1 py-0 rounded">
+                                🗑 Delete
+                            </button>
+                            {% endif %}
+                        </td>
+
+                        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+                        <script>
+                            function confirmDelete(saleId) {
+                                Swal.fire({
+                                    title: "Are you sure?",
+                                    text: "This will delete the sale and return items to stock!",
+                                    icon: "warning",
+                                    showCancelButton: true,
+                                    confirmButtonColor: "#d33",
+                                    cancelButtonColor: "#3085d6",
+                                    confirmButtonText: "Yes, delete it!"
+                                }).then((result) => {
+                                    if (result.isConfirmed) {
+                                        window.location.href = `{% url 'sales:delete_sale' 0 %}`.replace("0", saleId);
+
+                                    }
+                                });
+                            }
+                        </script>
+
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="12" class="text-center text-gray-500 py-4">No sales found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+
+
+
+</div>
 {% endblock %}

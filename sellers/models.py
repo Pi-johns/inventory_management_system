@@ -4,7 +4,7 @@ from shops.models import Shop  # Import Shop model
 
 class Seller(models.Model):
     """Represents a seller assigned to a shop."""
-    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,  related_name="seller_profile")
     shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name="sellers")  
     phone = models.CharField(max_length=15, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)

@@ -1,156 +1,120 @@
 from django.db import models
-from django.utils.timezone import now
-from accounts.models import CustomUser  # Seller reference
-from inventory.models import Product
+from django.contrib.auth import get_user_model
 from shops.models import Shop
-from reports.models import SalesReport, AccountingReport, ProfitReport
+from inventory.models import Product
+from accounts.models import CustomUser
 
+User = get_user_model()
 class Sale(models.Model):
-    PAYMENT_STATUS_CHOICES = [
-        ("Paid", "Paid"),
-        ("Partial", "Partial Payment"),
-        ("Credit", "Credit"),
-    ]
-
-    shop = models.ForeignKey(Shop, on_delete=models.CASCADE)
-    seller = models.ForeignKey(CustomUser, on_delete=models.CASCADE, limit_choices_to={'role': 'seller'})
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, default=1)  
-    quantity = models.PositiveIntegerField(default=1)  
-    price_per_piece = models.DecimalField(max_digits=10, decimal_places=2)  
-    total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)  
-    amount_paid = models.DecimalField(max_digits=10, decimal_places=2, default=0)  
-    balance = models.DecimalField(max_digits=10, decimal_places=2, default=0)  
-    payment_status = models.CharField(max_length=10, choices=PAYMENT_STATUS_CHOICES, default="Credit")  
-    customer_name = models.CharField(max_length=100, blank=True, null=True)
+    """Main sale transaction"""
+    seller = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="sales")
+    shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name="sales")
+    customer_name = models.CharField(max_length=255)
     customer_phone = models.CharField(max_length=15, blank=True, null=True)
-    date = models.DateTimeField(auto_now_add=True, db_index=True)
+    amount_paid = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    grand_total = models.DecimalField(max_digits=12, decimal_places=2, default=0)  # Cached total
+    balance = models.DecimalField(max_digits=12, decimal_places=2, default=0)  # Cached balance
+    last_edited = models.DateTimeField(auto_now=True)  # Automatically updates on save
+    period_processed = models.BooleanField(default=False)  # ✅ Ensures it is locked in reports
 
-    def __str__(self):
-        return f"Sale {self.id} - {self.product.name} ({self.payment_status})"
+    STATUS_CHOICES = [
+        ("Active", "Active"),  # Ongoing sale
+        ("Completed", "Completed"),  # Successfully completed sale
+        ("Damaged", "Damaged"),  # Sale marked as damaged
+    ]
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="Active")
 
-    def save(self, *args, **kwargs):
-        """Automatically calculate total amount, balance, update payment status, and stock."""
-        self.total_amount = self.quantity * self.price_per_piece  
-        self.balance = self.total_amount - self.amount_paid  
+    PAYMENT_STATUS_CHOICES = [
+        ("paid", "Paid"),
+        ("partial", "Partial Payment"),
+        ("credit", "Credit"),
+    ]
+    payment_status = models.CharField(
+        max_length=20, choices=PAYMENT_STATUS_CHOICES, default="credit"
+    )
 
-        # ✅ Update payment status
-        if self.amount_paid == 0:
-            self.payment_status = "Credit"
-        elif self.balance == 0:
-            self.payment_status = "Paid"
-        else:
-            self.payment_status = "Partial"
+    sale_date = models.DateTimeField(auto_now_add=True)
 
-        # ✅ Deduct stock only when the sale is first created
-        if not self.pk:
-            self.product.stock_quantity -= self.quantity
-            self.product.save()
+    def update_totals(self):
+        """Recalculate total sale amount, balance, and payment status safely"""
+        if self.status == "Damaged":
+            print(f"DEBUG - Sale {self.id} is marked as Damaged. Skipping total updates.")
+            return  # No need to update a damaged sale
 
-        super().save(*args, **kwargs)
+        try:
+            sale_items = self.items.all()
+            self.grand_total = sum(item.total_price for item in sale_items) if sale_items.exists() else 0
+            self.balance = self.grand_total - self.amount_paid
 
-        # ✅ Update Reports
-        self.update_reports()
-
-    def update_reports(self):
-        """Update Sales Report, Accounting Report, and Profit Report"""
-        # ✅ Update SalesReport
-        sales_report, _ = SalesReport.objects.get_or_create(date=self.date.date(), shop=self.shop)
-        sales_report.total_sales += self.total_amount
-        sales_report.total_profit += (self.total_amount - (self.product.cost_price * self.quantity))
-        sales_report.save()
-
-        # ✅ Update AccountingReport
-        accounting_report, _ = AccountingReport.objects.get_or_create(date=self.date.date(), shop=self.shop)
-        if self.payment_status == "Credit":
-            accounting_report.total_credit_sales += self.total_amount
-        else:
-            accounting_report.total_cash_sales += self.total_amount
-        accounting_report.total_profit += (self.total_amount - (self.product.cost_price * self.quantity))
-        accounting_report.save()
-
-        # ✅ Update ProfitReport
-        profit_report, _ = ProfitReport.objects.get_or_create(date=self.date.date(), seller=self.seller, shop=self.shop)
-        profit_report.total_revenue += self.total_amount
-        profit_report.total_cost += (self.product.cost_price * self.quantity)
-        profit_report.net_profit = profit_report.total_revenue - profit_report.total_cost
-        profit_report.save()
-
-    def delete(self, *args, **kwargs):
-        """Restore stock and update reports when a sale is deleted"""
-        self.product.stock_quantity += self.quantity  # ✅ Restore stock
-        self.product.save()
-
-        # ✅ Update reports when sale is removed
-        self.update_reports_on_delete()
-
-        super().delete(*args, **kwargs)
-
-    def update_reports_on_delete(self):
-        """Adjust reports when a sale is deleted"""
-        # ✅ Adjust Sales Report
-        sales_report = SalesReport.objects.filter(date=self.date.date(), shop=self.shop).first()
-        if sales_report:
-            sales_report.total_sales -= self.total_amount
-            sales_report.total_profit -= (self.total_amount - (self.product.cost_price * self.quantity))
-            sales_report.save()
-
-        # ✅ Adjust Accounting Report
-        accounting_report = AccountingReport.objects.filter(date=self.date.date(), shop=self.shop).first()
-        if accounting_report:
-            if self.payment_status == "Credit":
-                accounting_report.total_credit_sales -= self.total_amount
+            # Determine payment status
+            if self.balance <= 0:
+                self.payment_status = "paid"
+                self.balance = 0  # Ensure no negative balance
+            elif self.amount_paid > 0:
+                self.payment_status = "partial"
             else:
-                accounting_report.total_cash_sales -= self.total_amount
-            accounting_report.total_profit -= (self.total_amount - (self.product.cost_price * self.quantity))
-            accounting_report.save()
+                self.payment_status = "credit"
 
-        # ✅ Adjust Profit Report
-        profit_report = ProfitReport.objects.filter(date=self.date.date(), seller=self.seller, shop=self.shop).first()
-        if profit_report:
-            profit_report.total_revenue -= self.total_amount
-            profit_report.total_cost -= (self.product.cost_price * self.quantity)
-            profit_report.net_profit = profit_report.total_revenue - profit_report.total_cost
-            profit_report.save()
+            print(f"DEBUG - Sale {self.id}: grand_total={self.grand_total}, balance={self.balance}, status={self.payment_status}")
 
-    class Meta:
-        ordering = ["-date"]  # ✅ Show latest sales first
-
-### ✅ SALE ITEM MODEL (Tracks multiple products per sale) ###
-class SaleItem(models.Model):
-    sale = models.ForeignKey(Sale, on_delete=models.CASCADE, related_name="items")  # ✅ Link multiple items to a sale
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, default=1)  
-    quantity = models.PositiveIntegerField()
-    price_per_piece = models.DecimalField(max_digits=10, decimal_places=2)
-
-    def total_price(self):
-        """ Compute total price for this item """
-        return self.quantity * self.price_per_piece
-
-    total_price.short_description = "Total Price"
-
-    def __str__(self):
-        return f"{self.quantity} x {self.product.name} @ {self.price_per_piece}"
+        except Exception as e:
+            print(f"ERROR in update_totals(): {e}")
 
     def save(self, *args, **kwargs):
-        """Reduce stock when sale is created or updated"""
-        if not self.pk:  # Only reduce stock on first save
-            self.product.stock_quantity -= self.quantity
-        else:
-            old_item = SaleItem.objects.get(pk=self.pk)
-            stock_change = old_item.quantity - self.quantity  # Get the stock difference
-            self.product.stock_quantity += stock_change
-        self.product.save()
+        """Ensure totals update on every save, with debugging"""
+        if self.status != "Damaged":
+            try:
+                self.update_totals()
+            except Exception as e:
+                print(f"ERROR in update_totals(): {e}")  # Print error
+        super().save(*args, **kwargs)  # Save instance
+
+    def __str__(self):
+        return f"Sale #{self.id} - {self.customer_name} ({self.payment_status}) [{self.status}]"
+        
+    def calculate_profit(self):
+        """Calculate profit based on sale details, ignoring damaged sales."""
+        if self.status == "Damaged":
+            print(f"DEBUG - Sale {self.id} is damaged. Profit calculation skipped.")
+            return 0  # No profit from damaged sales
+
+        total_cost = sum(item.product.price * item.quantity for item in self.saleitem_set.all())
+        return self.grand_total - total_cost
+
+class SaleItem(models.Model):
+    """Represents each product sold in a sale"""
+    sale = models.ForeignKey(Sale, on_delete=models.CASCADE, related_name="items")
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="sale_items")
+    quantity = models.PositiveIntegerField()
+    price = models.DecimalField(max_digits=10, decimal_places=2)  # Used `price`, as requested
+    total_price = models.DecimalField(max_digits=12, decimal_places=2, editable=False)
+
+    def save(self, *args, **kwargs):
+        """Auto-calculate total price when saving"""
+        self.total_price = self.quantity * self.price
         super().save(*args, **kwargs)
 
+        # Track changes in sale totals before saving
+        old_totals = (self.sale.grand_total, self.sale.balance, self.sale.payment_status)
+        self.sale.update_totals()
+        new_totals = (self.sale.grand_total, self.sale.balance, self.sale.payment_status)
+
+        # Save sale only if something actually changed
+        if old_totals != new_totals:
+            self.sale.save(update_fields=["grand_total", "balance", "payment_status"])
+
     def delete(self, *args, **kwargs):
-        """Restore stock when sale item is deleted"""
-        self.product.stock_quantity += self.quantity
-        self.product.save()
+        """Ensure sale totals update when an item is deleted"""
         super().delete(*args, **kwargs)
+        self.sale.update_totals()
+        self.sale.save()
+
+    def __str__(self):
+        return f"{self.product.name} x {self.quantity} for Sale #{self.sale.id}"
 
 
-### ✅ Payment - Tracks Payments & Updates Sale ###
 class Payment(models.Model):
+    """Payment model to track sale payments"""
     sale = models.ForeignKey(Sale, on_delete=models.CASCADE, related_name="payments")
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     date = models.DateTimeField(auto_now_add=True)
@@ -160,7 +124,66 @@ class Payment(models.Model):
 
     def save(self, *args, **kwargs):
         """Update sale payment status when a new payment is added"""
-        super().save(*args, **kwargs)
+        super().save(*args, **kwargs)  # Save payment first
 
-        self.sale.amount_paid += self.amount  # Increase total amount paid
-        self.sale.save()  # Recalculate balance and payment status
+        # Update total paid amount
+        old_totals = (self.sale.amount_paid, self.sale.balance, self.sale.payment_status)
+        self.sale.amount_paid = sum(payment.amount for payment in self.sale.payments.all())
+        self.sale.update_totals()
+        new_totals = (self.sale.amount_paid, self.sale.balance, self.sale.payment_status)
+
+        # Save only if something actually changed
+        if old_totals != new_totals:
+            self.sale.save(update_fields=["amount_paid", "balance", "payment_status"])
+
+        # Debugging
+        print(f"DEBUG - Payment saved: {self.amount} for Sale {self.sale.id}")
+        print(f"DEBUG - Updated Sale {self.sale.id} new amount_paid: {self.sale.amount_paid}")
+
+
+# ==========================
+# NEW MODEL: DAMAGED GOODS
+# ==========================
+class DamagedGoods(models.Model):
+    """Tracks damaged goods returned from sales"""
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="damaged_goods")
+    quantity = models.PositiveIntegerField()
+    reason = models.TextField(blank=True, null=True)  # Optional reason for damage
+    seller = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True)
+    date_damaged = models.DateTimeField(auto_now_add=True)
+    total_loss = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+   
+    def save(self, *args, **kwargs):
+        """Automatically calculate total loss before saving."""
+        self.total_loss = self.quantity * self.product.entry_price  # Assuming entry_price exists
+        super().save(*args, **kwargs)
+    
+    def __str__(self):
+        return f"{self.product.name} - {self.quantity} damaged"
+
+# ==========================
+# NEW MODEL: CREDIT TRANSACTION
+# ==========================
+class CreditTransaction(models.Model):
+    """Tracks credit payments made by customers over time."""
+    sale = models.ForeignKey(Sale, on_delete=models.CASCADE, related_name="credit_transactions")
+    amount_paid = models.DecimalField(max_digits=10, decimal_places=2)
+    payment_date = models.DateTimeField(auto_now_add=True)
+    recorded_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True)
+
+    def __str__(self):
+        return f"Credit Payment of {self.amount_paid} for Sale #{self.sale.id} on {self.payment_date}"
+
+
+# ==========================
+# NEW MODEL: CASH TRANSACTION
+# ==========================
+class CashTransaction(models.Model):
+    """Records cash payments for sales."""
+    sale = models.ForeignKey(Sale, on_delete=models.CASCADE, related_name="cash_transactions")
+    amount_paid = models.DecimalField(max_digits=10, decimal_places=2)
+    payment_date = models.DateTimeField(auto_now_add=True)
+    recorded_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True)
+
+    def __str__(self):
+        return f"Cash Payment of {self.amount_paid} for Sale #{self.sale.id} on {self.payment_date}"

@@ -1,305 +1,459 @@
 from django.shortcuts import render
-from django.contrib.auth.decorators import login_required, user_passes_test
-from django.utils.timezone import now
-from django.db.models import Sum, Count, F
-from django.http import JsonResponse, HttpResponse
-import csv
-
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
-from .models import BalanceSheet
+from django.contrib.auth.decorators import login_required
 from sales.models import Sale, SaleItem
-from inventory.models import Product
-from .models import SalesReport, ProductPerformanceReport, AccountingReport
+from expenses.models import Expense
+from sales.models import DamagedGoods
+from django.utils.timezone import now
+from django.db.models import Sum, F, ExpressionWrapper, DecimalField, Case, When, Value, Q
+from shops.models import Shop
+from sellers.models import Seller
+from django.db.models.functions import TruncDate
 
 
-# --- ROLE CHECK FUNCTIONS ---
-def is_superadmin(user):
-    return user.is_authenticated and user.role == "superadmin"
+@login_required
+def reports_home(request):
+    """Dashboard for viewing business reports with key metrics and graphs."""
+    # Get filters from request
+    date_from = request.GET.get("date_from")
+    date_to = request.GET.get("date_to")
+    shop_id = request.GET.get("shop")
+    seller_id = request.GET.get("seller")
 
-def is_manager(user):
-    return user.is_authenticated and user.role == "manager"
+    # Build the filter query dynamically
+    filters = Q()
+    
+    if date_from:
+        filters &= Q(sale_date__gte=date_from)
+    if date_to:
+        filters &= Q(sale_date__lte=date_to)
+    if shop_id:
+        filters &= Q(shop_id=shop_id)
+    if seller_id:
+        filters &= Q(seller_id=seller_id)
 
-def is_superadmin_or_manager(user):
-    return user.is_authenticated and (user.role == "superadmin" or user.role == "manager")
+    current_period_start = now().replace(day=1)  # Start of the current month
 
+    # ✅ Total Sales Count
+    total_sales_count = Sale.objects.filter(sale_date__gte=current_period_start).count()
 
-# --- REPORT GENERATION FUNCTIONS ---
-def generate_sales_report():
-    """Generates and saves daily sales report."""
-    today = now().date()
+    # ✅ Total Revenue (Total Sales Amount)
+    total_revenue = Sale.objects.filter(sale_date__gte=current_period_start).aggregate(Sum('grand_total'))['grand_total__sum'] or 0
 
-    sales_data = Sale.objects.filter(date_sold=today).aggregate(
-        total_sales=Sum('total_amount')
-    )
-    profit_data = SaleItem.objects.filter(sale__date_sold=today).aggregate(
-        total_profit=Sum(F('selling_price') - F('entry_price'))
-    )
+    # ✅ Total Cash Sales
+    total_cash_sales = Sale.objects.filter(sale_date__gte=current_period_start, payment_status="paid").aggregate(Sum('grand_total'))['grand_total__sum'] or 0
 
-    report = SalesReport.objects.create(
-        date=today,
-        total_sales=sales_data['total_sales'] or 0,
-        total_profit=profit_data['total_profit'] or 0
-    )
-    return report
+    # ✅ Total Credit Sales
+    total_credit_sales = Sale.objects.filter(sale_date__gte=current_period_start, payment_status="credit").aggregate(Sum('grand_total'))['grand_total__sum'] or 0
 
+    # ✅ Total Partial Sales
+    total_partial_sales = Sale.objects.filter(sale_date__gte=current_period_start, payment_status="partial").aggregate(Sum('grand_total'))['grand_total__sum'] or 0
 
-def generate_product_performance_report():
-    """Generates product performance reports."""
-    products = SaleItem.objects.values('product__name').annotate(
-        quantity_sold=Sum('quantity'),
-        total_revenue=Sum('selling_price')
-    ).order_by('-quantity_sold')
+    # ✅ Total Expenses
+    total_expenses = Expense.objects.filter(date_recorded__gte=current_period_start).aggregate(Sum('amount'))['amount__sum'] or 0
 
-    ProductPerformanceReport.objects.all().delete()  # Avoid duplicate records
+    # ✅ Total Damages
+    total_damages = DamagedGoods.objects.filter(date_damaged__gte=current_period_start).aggregate(Sum('total_loss'))['total_loss__sum'] or 0
 
-    for product in products:
-        ProductPerformanceReport.objects.create(
-            product_name=product['product__name'],
-            quantity_sold=product['quantity_sold'],
-            total_revenue=product['total_revenue']
+    # ✅ Realized & Future Profit Calculation
+    sales_with_profit = SaleItem.objects.filter(sale__sale_date__gte=current_period_start).annotate(
+        entry_price=F("product__entry_price"),
+        item_profit=ExpressionWrapper(
+            (F("price") - F("entry_price")) * F("quantity"),
+            output_field=DecimalField()
+        ),
+        realized_profit=Case(
+            When(sale__payment_status="paid", then=F("item_profit")),  # Fully paid sales
+            When(sale__payment_status="partial", then=F("item_profit") * (F("sale__amount_paid") / F("sale__grand_total"))),  # Partial payments
+            default=Value(0),
+            output_field=DecimalField()
+        ),
+        future_profit=Case(
+            When(sale__payment_status="credit", then=F("item_profit")),  # Unpaid credit sales
+            When(sale__payment_status="partial", then=F("item_profit") * (F("sale__balance") / F("sale__grand_total"))),  # Unpaid part of partial payments
+            default=Value(0),
+            output_field=DecimalField()
         )
-
-
-def generate_accounting_report():
-    """Generates an accounting report including balance sheet."""
-    today = now().date()
-
-    total_credit_sales = Sale.objects.filter(is_credit=True, date_sold=today).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
-    total_cash_sales = Sale.objects.filter(is_credit=False, date_sold=today).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
-    total_profit = SaleItem.objects.filter(sale__date_sold=today).aggregate(Sum(F('selling_price') - F('entry_price')))['total_profit'] or 0
-
-    balance_sheet = f"Total Cash Sales: {total_cash_sales}, Total Credit Sales: {total_credit_sales}, Total Profit: {total_profit}"
-
-    AccountingReport.objects.create(
-        date=today,
-        total_credit_sales=total_credit_sales,
-        total_cash_sales=total_cash_sales,
-        total_profit=total_profit,
-        balance_sheet=balance_sheet
+    ).aggregate(
+        total_cash_profit=Sum(
+            Case(When(sale__payment_status="paid", then=F("item_profit")), default=Value(0), output_field=DecimalField())
+        ) or 0,
+        total_partial_profit=Sum(
+            Case(When(sale__payment_status="partial", then=F("item_profit") * (F("sale__amount_paid") / F("sale__grand_total"))), default=Value(0), output_field=DecimalField())
+        ) or 0,
+        total_credit_unrealized_profit=Sum(
+            Case(
+                When(sale__payment_status="credit", then=F("item_profit")),
+                When(sale__payment_status="partial", then=F("item_profit") * (F("sale__balance") / F("sale__grand_total"))),
+                default=Value(0),
+                output_field=DecimalField()
+            )
+        ) or 0
     )
 
+    total_cash_profit = sales_with_profit["total_cash_profit"]
+    total_partial_profit = sales_with_profit["total_partial_profit"]
+    total_credit_unrealized_profit = sales_with_profit["total_credit_unrealized_profit"]
 
-# --- REPORT VIEWS ---
-@login_required
-@user_passes_test(is_superadmin_or_manager)
-def sales_report_view(request):
-    """View to display sales reports."""
-    reports = SalesReport.objects.all().order_by('-date')
-    return render(request, 'reports/reports.html', {'reports': reports})
+    # ✅ Net Profit (Ensuring No Negative Loss)
+    net_profit = total_cash_profit + total_partial_profit - (total_expenses + total_damages)
 
+    # ✅ Total Loss Logic (Ensuring No Negative Loss)
+    if (total_expenses + total_damages) <= (total_cash_profit + total_partial_profit):
+        total_loss = 0  # No loss if sales profit covers expenses and damages
+    else:
+        total_loss = (total_expenses + total_damages) - (total_cash_profit + total_partial_profit)  # Actual loss
+    # Calculate total realized profit (already computed as total_cash_profit + total_partial_profit)
+    total_realized_profit = total_cash_profit + total_partial_profit
+    
+    if total_revenue:
+        profit_margin = (total_realized_profit / total_revenue) * 100
+    else:
+        profit_margin = 0
+   
+    # ✅ Sales & Profit Over Time Data
+    sales_data = (
+        Sale.objects
+        .filter(sale_date__gte=current_period_start)
+        .annotate(sale_day=TruncDate("sale_date"))  # Group by date
+        .values("sale_day")
+        .annotate(
+            total_sales=Sum("grand_total"),
+            total_profit=Sum(
+                ExpressionWrapper(
+                    (F("items__price") - F("items__product__entry_price")) * F("items__quantity"),
+                    output_field=DecimalField()
+                ) * Case(
+                    When(payment_status="paid", then=Value(1)),  # Fully paid
+                    When(payment_status="partial", then=F("amount_paid") / F("grand_total")),  # Partially paid portion
+                    default=Value(0),  # Credit (not realized yet)
+                    output_field=DecimalField()
+                )
+            ),
+        )
+        .order_by("sale_day")
+    )
 
-@login_required
-@user_passes_test(is_superadmin_or_manager)
-def product_performance_view(request):
-    """View to display product performance (top & least selling products)."""
-    products = ProductPerformanceReport.objects.all().order_by('-quantity_sold')
-    return render(request, 'reports/reports.html', {'products': products})
+    sales_dates = [entry["sale_day"].strftime("%Y-%m-%d") for entry in sales_data]
+    sales_totals = [float(entry["total_sales"]) for entry in sales_data]
+    profit_totals = [float(entry["total_profit"] or 0) for entry in sales_data]
+   
+    # ✅ Top 5 Best-Selling Products
+    product_names = []
+    product_sales = []
+    top_products = (
+        SaleItem.objects
+        .values("product__name")
+        .annotate(total_sold=Sum("quantity"))
+        .order_by("-total_sold")[:5]
+    )
+    if top_products:
+        product_names = [item["product__name"] for item in top_products]
+        product_sales = [item["total_sold"] for item in top_products]
+    # Create a zipped list of top products and their sales:
+    top_products_list = list(zip(product_names, product_sales))
+    # Calculate the maximum sales value (for scaling the progress bar)
+    max_product_sales = max(product_sales) if product_sales else 0
+    
 
-
-@login_required
-@user_passes_test(is_superadmin_or_manager)
-def accounting_report_view(request):
-    """View to display accounting reports."""
-    reports = AccountingReport.objects.all().order_by('-date')
-    return render(request, 'reports/reports.html', {'reports': reports})
-
-
-@login_required
-@user_passes_test(is_superadmin_or_manager)
-def profit_analysis(request):
-    """Calculate profit based on entry price vs selling price."""
-    products = Product.objects.all()
-    profit_data = []
-
-    for product in products:
-        sales = SaleItem.objects.filter(product=product)
-        revenue = sales.aggregate(total_revenue=Sum(F('quantity') * F('selling_price')))['total_revenue'] or 0
-        cost = sales.aggregate(total_cost=Sum(F('quantity') * F('product__entry_price')))['total_cost'] or 0
-        profit = revenue - cost
-
-        profit_data.append({
-            "product": product.name,
-            "total_sold": sales.aggregate(total_sold=Sum('quantity'))['total_sold'] or 0,
-            "total_revenue": revenue,
-            "total_profit": profit
-        })
-
-    return render(request, "reports/reports.html", {"profit_data": profit_data})
-
-
-@login_required
-def reports_data(request):
-    """Fetch reports data dynamically for dashboards."""
-    sales = Sale.objects.values("date").annotate(total_sales=Sum("total_amount"))
-    profits = Sale.objects.values("date").annotate(total_profit=Sum("profit"))
-
-    top_selling = Product.objects.annotate(sales_count=Count("saleitem")).order_by("-sales_count")[:5]
-    least_selling = Product.objects.annotate(sales_count=Count("saleitem")).order_by("sales_count")[:5]
-
-    return JsonResponse({
-        "sales_dates": [s["date"] for s in sales],
-        "sales_amounts": [s["total_sales"] for s in sales],
-        "profit_amounts": [p["total_profit"] for p in profits],
-        "top_selling": [{"name": p.name, "sales_count": p.sales_count} for p in top_selling],
-        "least_selling": [{"name": p.name, "sales_count": p.sales_count} for p in least_selling]
-    })
-
-
-# --- EXPORT CSV FUNCTION ---
-@login_required
-@user_passes_test(is_superadmin)
-def export_sales_csv(request):
-    """Export sales data as CSV."""
-    response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename="sales_report.csv"'
-
-    writer = csv.writer(response)
-    writer.writerow(['Sale ID', 'Seller', 'Total Amount', 'Date'])
-
-    sales = Sale.objects.all().values_list("id", "seller__username", "total_amount", "date")
-    for sale in sales:
-        writer.writerow(sale)
-
-    return response
-
-
-# --- DASHBOARD REPORTS ---
-@login_required
-@user_passes_test(is_superadmin_or_manager)
-def reports_dashboard(request):
-    """Superadmin and Manager Reports Dashboard."""
-    today = now().date()
-
-    # Sales Reports
-    sales_reports = SalesReport.objects.filter(date=today)
-    total_sales = Sale.objects.filter(date_sold=today).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
-
-    # Profit Analysis
-    products = Product.objects.all()
-    profit_data = []
-    for product in products:
-        sales = SaleItem.objects.filter(product=product)
-        revenue = sales.aggregate(total_revenue=Sum(F('quantity') * F('selling_price')))['total_revenue'] or 0
-        cost = sales.aggregate(total_cost=Sum(F('quantity') * F('product__entry_price')))['total_cost'] or 0
-        profit = revenue - cost
-        profit_data.append({
-            "product": product.name,
-            "total_sold": sales.aggregate(total_sold=Sum('quantity'))['total_sold'] or 0,
-            "total_revenue": revenue,
-            "total_profit": profit
-        })
-
-    # Daily Sales Summary
-    summarized_reports = {
-        "total_sales": total_sales,
-        "total_profit": SaleItem.objects.filter(sale__date_sold=today).aggregate(
-            total_profit=Sum(F('selling_price') - F('entry_price'))
-        )['total_profit'] or 0,
-    }
-
+    # ✅ Pass data to template
     context = {
-        "sales_reports": sales_reports,
-        "profit_data": profit_data,
-        "summarized_reports": summarized_reports
+        "profit_margin": profit_margin,
+        "top_products_list": top_products_list,
+        "max_product_sales": max_product_sales,
+        "total_sales_count": total_sales_count,  # ✅ Total Sales Count
+        "total_revenue": total_revenue,  # ✅ Total Revenue
+        "total_cash_sales": total_cash_sales,  # ✅ Total Cash Sales
+        "total_credit_sales": total_credit_sales,  # ✅ Total Credit Sales
+        "total_partial_sales": total_partial_sales,  # ✅ Total Partial Sales
+        "total_expenses": total_expenses,  # ✅ Expenses
+        "total_damages": total_damages,  # ✅ Damages
+        "net_profit": net_profit,  # ✅ Net Profit
+        "total_realized_profit": total_cash_profit + total_partial_profit,  # ✅ Profit actually earned
+        "total_future_profit": total_credit_unrealized_profit,  # ✅ Profit from unpaid balances
+        "total_cash_profit": total_cash_profit,  # ✅ Fully realized profit
+        "total_partial_profit": total_partial_profit,  # ✅ Partially realized profit
+        "total_credit_unrealized_profit": total_credit_unrealized_profit,  # ✅ Credit unrealized profit
+        "sales_dates": sales_dates,  # ✅ Sales Trend Data
+        "sales_totals": sales_totals,  # ✅ Sales Chart Data
+        "profit_totals": profit_totals,  # ✅ Profit Chart Data
+        "product_names": product_names,  # ✅ Top 5 Product Labels
+        "product_sales": product_sales,  # ✅ Top 5 Product Sales Data
+        "total_loss": total_loss,  # ✅ Adjusted Loss Calculation
+        "filters": {
+            "date_from": date_from,
+            "date_to": date_to,
+            "shop_id": shop_id,
+            "seller_id": seller_id,
+        },
+        "shops": Shop.objects.all(),
+        "sellers": Seller.objects.all(),
+
     }
 
     return render(request, "reports/reports.html", context)
 
+@login_required
+def sales_report(request):
+    """Generates sales report with filters (date, shop, seller)."""
+    start_date = request.GET.get('start_date', now().replace(day=1))  # Default: Start of month
+    end_date = request.GET.get('end_date', now())  # Default: Today
+    shop = request.GET.get('shop')
+    seller = request.GET.get('seller')
 
-def export_sales_pdf(request):
-    """ Generate a PDF file containing sales reports """
-    response = HttpResponse(content_type="application/pdf")
-    response["Content-Disposition"] = 'attachment; filename="sales_report.pdf"'
+    sales = Sale.objects.filter(date__range=[start_date, end_date])
 
-    # Create a PDF document
-    pdf = canvas.Canvas(response, pagesize=letter)
-    pdf.setTitle("Sales Report")
+    if shop:
+        sales = sales.filter(shop__id=shop)
+    if seller:
+        sales = sales.filter(seller__id=seller)
 
-    # Header
-    pdf.setFont("Helvetica-Bold", 16)
-    pdf.drawString(200, 750, "Sales Report")
+    total_sales = sales.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+    total_transactions = sales.count()
     
-    # Table headers
-    pdf.setFont("Helvetica-Bold", 12)
-    pdf.drawString(50, 700, "Product")
-    pdf.drawString(200, 700, "Seller")
-    pdf.drawString(350, 700, "Total Amount")
-    pdf.drawString(500, 700, "Date")
+    context = {
+        "sales": sales,
+        "total_sales": total_sales,
+        "total_transactions": total_transactions,
+    }
 
-    sales = Sale.objects.all().order_by("-date")
-    y = 680  # Y-coordinate for table rows
-
-    # Add sales data to PDF
-    pdf.setFont("Helvetica", 12)
-    for sale in sales:
-        pdf.drawString(50, y, sale.product.name)
-        pdf.drawString(200, y, sale.seller.username)
-        pdf.drawString(350, y, f"${sale.total_price:.2f}")
-        pdf.drawString(500, y, sale.date.strftime("%Y-%m-%d"))
-        y -= 20
-
-        # Create a new page if needed
-        if y < 50:
-            pdf.showPage()
-            y = 750  # Reset position
-
-    pdf.showPage()
-    pdf.save()
-    return response
+    return render(request, "reports/sales_report.html", context)
 
 
-def export_balance_csv(request):
-    """ Export balance sheet as CSV """
-    response = HttpResponse(content_type="text/csv")
-    response["Content-Disposition"] = 'attachment; filename="balance_sheet.csv"'
+@login_required
+def expense_report(request):
+    """Generates expense report with filters (date, shop)."""
+    start_date = request.GET.get('start_date', now().replace(day=1))
+    end_date = request.GET.get('end_date', now())
+    shop = request.GET.get('shop')
 
+    expenses = Expense.objects.filter(date_recorded__range=[start_date, end_date])
+
+    if shop:
+        expenses = expenses.filter(shop__id=shop)
+
+    total_expenses = expenses.aggregate(Sum('amount'))['amount__sum'] or 0
+
+    context = {
+        "expenses": expenses,
+        "total_expenses": total_expenses,
+    }
+
+    return render(request, "reports/expense_report.html", context)
+
+
+
+
+@login_required
+def damage_report(request):
+    """Generates damage report with filters (date, shop)."""
+    start_date = request.GET.get('start_date', now().replace(day=1))
+    end_date = request.GET.get('end_date', now())
+    shop = request.GET.get('shop')
+
+    damaged_goods = DamagedGoods.objects.filter(date_damaged__range=[start_date, end_date])
+
+    if shop:
+        damaged_goods = damaged_goods.filter(shop__id=shop)
+
+    total_damages = damaged_goods.aggregate(Sum('total_loss'))['total_loss__sum'] or 0
+    total_damaged_items = damaged_goods.aggregate(Sum('quantity'))['quantity__sum'] or 0
+
+    context = {
+        "damaged_goods": damaged_goods,
+        "total_damages": total_damages,
+        "total_damaged_items": total_damaged_items,
+    }
+
+    return render(request, "reports/damage_report.html", context)
+
+
+
+
+@login_required
+def top_products_report(request):
+    """Generates a report of the top 5 performing products."""
+    start_date = request.GET.get('start_date', now().replace(day=1))
+    end_date = request.GET.get('end_date', now())
+    shop = request.GET.get('shop')
+
+    sale_items = SaleItem.objects.filter(sale__date__range=[start_date, end_date])
+
+    if shop:
+        sale_items = sale_items.filter(sale__shop__id=shop)
+
+    top_products = sale_items.values("product__name").annotate(
+        total_sold=Sum("quantity")
+    ).order_by("-total_sold")[:5]  # Top 5 products
+
+    context = {
+        "top_products": top_products,
+    }
+
+    return render(request, "reports/top_products_report.html", context)
+
+
+
+
+@login_required
+def net_profit_report(request):
+    """Calculates net profit as (Sales Profit - Expenses - Damage Loss)."""
+    start_date = request.GET.get('start_date', now().replace(day=1))
+    end_date = request.GET.get('end_date', now())
+    shop = request.GET.get('shop')
+
+    # Sales Profit (Cash Sales + Partial Profit)
+    sales = Sale.objects.filter(date__range=[start_date, end_date])
+    if shop:
+        sales = sales.filter(shop__id=shop)
+    sales_profit = sales.aggregate(Sum("profit"))["profit__sum"] or 0
+
+    # Total Expenses
+    expenses = Expense.objects.filter(date_recorded__range=[start_date, end_date])
+    if shop:
+        expenses = expenses.filter(shop__id=shop)
+    total_expenses = expenses.aggregate(Sum("amount"))["amount__sum"] or 0
+
+    # Total Damage Loss
+    damages = DamagedGoods.objects.filter(date_damaged__range=[start_date, end_date])
+    if shop:
+        damages = damages.filter(shop__id=shop)
+    total_damages = damages.aggregate(Sum("total_loss"))["total_loss__sum"] or 0
+
+    # Net Profit Calculation
+    net_profit = sales_profit - (total_expenses + total_damages)
+
+    context = {
+        "sales_profit": sales_profit,
+        "total_expenses": total_expenses,
+        "total_damages": total_damages,
+        "net_profit": net_profit,
+    }
+
+    return render(request, "reports/net_profit_report.html", context)
+
+
+
+
+import csv
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404
+from django.contrib.auth.decorators import login_required
+
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+
+@login_required
+def export_sales_csv(request):
+    """ Export sales report as CSV """
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="sales_report.csv"'
+    
     writer = csv.writer(response)
-    writer.writerow(["Date", "Total Revenue", "Total Expenses", "Net Profit"])
-
-    balances = BalanceSheet.objects.all().order_by("-date")
-    for balance in balances:
-        writer.writerow([balance.date, balance.total_revenue, balance.total_expenses, balance.net_profit])
-
+    writer.writerow(['Date', 'Shop', 'Seller', 'Customer', 'Total Amount', 'Payment Status', 'Profit'])
+    
+    sales = Sale.objects.all()
+    for sale in sales:
+        writer.writerow([
+            sale.sale_date.strftime('%Y-%m-%d'),
+            sale.shop.name if sale.shop else "N/A",
+            sale.seller.username,
+            sale.customer_name,
+            sale.grand_total,
+            sale.payment_status,
+            sale.get_total_profit()
+        ])
     return response
 
 
-def export_balance_pdf(request):
-    """ Generate a PDF file containing balance sheet reports """
-    response = HttpResponse(content_type="application/pdf")
-    response["Content-Disposition"] = 'attachment; filename="balance_sheet.pdf"'
 
-    pdf = canvas.Canvas(response, pagesize=letter)
-    pdf.setTitle("Balance Sheet Report")
 
-    # Header
-    pdf.setFont("Helvetica-Bold", 16)
-    pdf.drawString(200, 750, "Balance Sheet Report")
 
-    # Table headers
-    pdf.setFont("Helvetica-Bold", 12)
-    pdf.drawString(50, 700, "Date")
-    pdf.drawString(200, 700, "Total Revenue")
-    pdf.drawString(350, 700, "Total Expenses")
-    pdf.drawString(500, 700, "Net Profit")
+@login_required
+def export_expenses_csv(request):
+    """ Export expenses report as CSV """
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="expenses_report.csv"'
+    
+    writer = csv.writer(response)
+    writer.writerow(['Date', 'Recorded By', 'Description', 'Amount'])
+    
+    expenses = Expense.objects.all()
+    for expense in expenses:
+        writer.writerow([
+            expense.date_recorded.strftime('%Y-%m-%d'),
+            expense.recorded_by.username,
+            expense.description,
+            expense.amount
+        ])
+    return response
 
-    balances = BalanceSheet.objects.all().order_by("-date")
-    y = 680  # Y-coordinate for table rows
 
-    # Add balance sheet data to PDF
-    pdf.setFont("Helvetica", 12)
-    for balance in balances:
-        pdf.drawString(50, y, balance.date.strftime("%Y-%m-%d"))
-        pdf.drawString(200, y, f"${balance.total_revenue:.2f}")
-        pdf.drawString(350, y, f"${balance.total_expenses:.2f}")
-        pdf.drawString(500, y, f"${balance.net_profit:.2f}")
+
+
+
+@login_required
+def export_damaged_goods_csv(request):
+    """ Export damaged goods report as CSV """
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="damaged_goods_report.csv"'
+    
+    writer = csv.writer(response)
+    writer.writerow(['Date Damaged', 'Product', 'Seller', 'Quantity', 'Entry Price', 'Total Loss'])
+    
+    damaged_goods = DamagedGoods.objects.all()
+    for item in damaged_goods:
+        total_loss = item.quantity * item.product.entry_price
+        writer.writerow([
+            item.date_damaged.strftime('%Y-%m-%d'),
+            item.product.name,
+            item.seller.username,
+            item.quantity,
+            item.product.entry_price,
+            total_loss
+        ])
+    return response
+
+
+
+
+
+@login_required
+def export_report_pdf(request):
+    """ Generate a PDF report summarizing sales, expenses, and damaged goods """
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="business_report.pdf"'
+    
+    p = canvas.Canvas(response, pagesize=letter)
+    p.setFont("Helvetica-Bold", 14)
+    p.drawString(200, 750, "Business Report")
+    
+    y = 720
+    p.setFont("Helvetica", 12)
+    
+    # Sales Summary
+    p.drawString(50, y, "Sales Report")
+    sales = Sale.objects.all()
+    y -= 20
+    for sale in sales[:10]:  # Show first 10 for brevity
+        p.drawString(50, y, f"{sale.sale_date.strftime('%Y-%m-%d')} - {sale.customer_name} - {sale.grand_total}")
         y -= 20
-
-        # Create a new page if needed
-        if y < 50:
-            pdf.showPage()
-            y = 750  # Reset position
-
-    pdf.showPage()
-    pdf.save()
+    
+    # Expenses Summary
+    p.drawString(50, y, "Expenses Report")
+    expenses = Expense.objects.all()
+    y -= 20
+    for expense in expenses[:10]:
+        p.drawString(50, y, f"{expense.date_recorded.strftime('%Y-%m-%d')} - {expense.description} - {expense.amount}")
+        y -= 20
+    
+    # Damaged Goods Summary
+    p.drawString(50, y, "Damaged Goods Report")
+    damaged_goods = DamagedGoods.objects.all()
+    y -= 20
+    for item in damaged_goods[:10]:
+        p.drawString(50, y, f"{item.date_damaged.strftime('%Y-%m-%d')} - {item.product.name} - {item.quantity} - Loss: {item.quantity * item.product.entry_price}")
+        y -= 20
+    
+    p.showPage()
+    p.save()
     return response

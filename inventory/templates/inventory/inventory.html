@@ -25,6 +25,21 @@
             <li class="py-2 px-5 hover:bg-gray-700">
                 <a href="{% url 'inventory:product_list' %}">📦 View Products</a>
             </li>
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="{% url 'inventory:out_of_stock_products' %}">❌ Out of Stock</a>
+            </li>
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="{% url 'sales:damaged_goods_list' %}">🚨 Damaged Goods</a>
+            </li>
+
+            <!-- 🔥 New "Mark Items as Damaged" Button (Only for Managers & Superadmins) -->
+            {% if request.user.is_superuser or "Manager" in request.user.groups.all|join:", " %}
+            <li class="py-2 px-5 hover:bg-red-700 bg-red-600 text-white rounded-md">
+                <a href="{% url 'sales:mark_stock_as_damaged' %}" class="w-full text-left block">
+                    ⚠️ Mark Items as Damaged
+                </a>
+            </li>
+            {% endif %}
         </ul>
     </nav>
 
@@ -32,6 +47,50 @@
     <div class="ml-64 flex-1 p-10">
         <h1 class="text-3xl font-bold">Inventory Management</h1>
 
+        <!-- Product Summary Section -->
+        <div class="flex flex-wrap gap-4 mb-6">
+
+            <!-- Total Products -->
+            <div
+                class="flex items-center bg-blue-500 text-white px-4 py-3 rounded-md shadow-md w-52 transform transition duration-300 hover:scale-105 hover:shadow-lg">
+                <span class="text-2xl">📦</span>
+                <div class="ml-3">
+                    <h2 class="text-sm font-semibold">Total Products</h2>
+                    <p class="text-lg font-bold">{{ products.count }}</p>
+                </div>
+            </div>
+
+            <!-- Total Stock Value -->
+            <div
+                class="flex items-center bg-green-500 text-white px-4 py-3 rounded-md shadow-md w-52 transform transition duration-300 hover:scale-105 hover:shadow-lg">
+                <span class="text-2xl">💰</span>
+                <div class="ml-3">
+                    <h2 class="text-sm font-semibold">Total Stock Value</h2>
+                    <p class="text-lg font-bold">KES {{ total_stock_value }}</p>
+                </div>
+            </div>
+
+            <!-- Low Stock Products -->
+            <div
+                class="flex items-center bg-yellow-500 text-white px-4 py-3 rounded-md shadow-md w-52 transform transition duration-300 hover:scale-105 hover:shadow-lg">
+                <span class="text-2xl">⚠️</span>
+                <div class="ml-3">
+                    <h2 class="text-sm font-semibold">Low Stock Products</h2>
+                    <p class="text-lg font-bold">{{ total_low_stock }}</p>
+                </div>
+            </div>
+
+            <!-- Out of Stock Products -->
+            <div
+                class="flex items-center bg-red-500 text-white px-4 py-3 rounded-md shadow-md w-52 transform transition duration-300 hover:scale-105 hover:shadow-lg">
+                <span class="text-2xl">❌</span>
+                <div class="ml-3">
+                    <h2 class="text-sm font-semibold">Out of Stock</h2>
+                    <p class="text-lg font-bold">{{ total_out_of_stock }}</p>
+                </div>
+            </div>
+
+        </div>
 
 
         <!-- ⚠️ Low Stock Alerts (Only Show if Needed) -->
@@ -72,14 +131,15 @@
 
             <!-- 📦 Product Table -->
             <table class="w-full mt-3 border-collapse border border-gray-300">
-                <thead>
-                    <tr class="bg-gray-200">
-                        <th class="border border-gray-300 px-4 py-2">#</th>
-                        <th class="border border-gray-300 px-4 py-2">Name</th>
-                        <th class="border border-gray-300 px-4 py-2">Stock</th>
-                        <th class="border border-gray-300 px-4 py-2">Price (KES)</th>
+                <thead class="bg-gray-800 text-white">
+                    <tr>
+                        <th class="px-4 py-3 text-left">#</th>
+                        <th class="px-4 py-3 text-left">Name</th>
+                        <th class="px-4 py-3 text-left">Stock</th>
+
                         {% if request.user.role == 'manager' or request.user.role == 'superadmin' %}
-                        <th class="border border-gray-300 px-4 py-2">Actions</th>
+                        <th class="px-4 py-3 text-left">Price (KES)</th>
+                        <th class="px-4 py-3 text-left">Actions</th>
                         {% endif %}
                     </tr>
                 </thead>
@@ -89,12 +149,12 @@
                         <td class="border border-gray-300 px-4 py-2">{{ forloop.counter }}</td>
                         <td class="border border-gray-300 px-4 py-2">{{ product.name }}</td>
                         <td class="border border-gray-300 px-4 py-2">{{ product.stock_quantity }}</td>
-                        <td class="border border-gray-300 px-4 py-2">{{ product.entry_price }}</td>
                         {% if request.user.role == 'manager' or request.user.role == 'superadmin' %}
+                        <td class="border border-gray-300 px-4 py-2">{{ product.entry_price }}</td>
                         <td class="border border-gray-300 px-4 py-2">
                             <a href="{% url 'inventory:update_product' product.id %}" class="text-blue-600">✏️ Edit</a>
                             |
-                            <a href="{% url 'inventory:delete_product' product.id %}" class="text-red-600">🗑 Delete</a>
+                            <a href="#" onclick="confirmDelete({{ product.id }})" class="text-red-600">🗑 Delete</a>
                         </td>
                         {% endif %}
                     </tr>
@@ -117,4 +177,25 @@
 
     </div>
 </div>
+
+<!-- Include SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    function confirmDelete(productId) {
+        Swal.fire({
+            title: "Are you sure?",
+            text: "This action is permanent! Deleted products cannot be recovered.",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#d33",
+            cancelButtonColor: "#3085d6",
+            confirmButtonText: "Yes, delete it!",
+            cancelButtonText: "Cancel"
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = `{% url 'inventory:delete_product' 0 %}`.replace("0", productId);
+            }
+        });
+    }
+</script>
 {% endblock %}

@@ -1,0 +1,75 @@
+{% extends 'base/base.html' %}
+
+{% block content %}
+<div class="flex h-screen bg-gray-100">
+    <!-- Sidebar -->
+    <nav class="w-64 bg-gray-900 text-white fixed h-full">
+        <div class="p-5 text-xl font-bold border-b border-gray-700">
+            💰 Expense Management
+        </div>
+        <ul class="mt-5 space-y-2">
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="{% url 'expenses:enter_expense' %}">➕ Enter Expense</a>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- Main Content Area -->
+    <div class="ml-64 flex-1 p-10">
+        <h1 class="text-3xl font-bold mb-6">📋 Business Expenses</h1>
+
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-3 gap-6 mb-6">
+            <div class="bg-red-100 p-5 rounded-lg shadow border-l-4 border-red-500">
+                <h2 class="text-lg font-semibold text-red-700">💵 Total Expenses (Current Period)</h2>
+                <p class="text-2xl font-bold text-red-600">KES {{ total_expenses|floatformat:2 }}</p>
+            </div>
+            <div class="bg-blue-100 p-5 rounded-lg shadow border-l-4 border-blue-500">
+                <h2 class="text-lg font-semibold text-blue-700">📊 Number of Expenses</h2>
+                <p class="text-2xl font-bold text-blue-600">{{ num_expenses }}</p>
+            </div>
+            <div class="bg-green-100 p-5 rounded-lg shadow border-l-4 border-green-500">
+                <h2 class="text-lg font-semibold text-green-700">📅 Last Recorded Expense</h2>
+                <p class="text-2xl font-bold text-gray-800">
+                    {% if last_expense_date %}
+                    {{ last_expense_date|date:"M d, Y - h:i A" }}
+                    {% else %}
+                    No expenses recorded
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+
+        <!-- Expense Table -->
+        <section class="bg-white p-6 shadow rounded-lg">
+            <h2 class="text-2xl font-semibold mb-4">Expense Records</h2>
+
+            <table class="min-w-full bg-white border border-gray-300 rounded-lg">
+                <thead class="bg-gray-200">
+                    <tr>
+                        <th class="py-2 px-4 border">Date</th>
+                        <th class="py-2 px-4 border">Description</th>
+                        <th class="py-2 px-4 border">Category</th>
+                        <th class="py-2 px-4 border">Amount (KES)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for expense in expenses %}
+                    <tr class="border-t">
+                        <td class="py-2 px-4 border">{{ expense.date_recorded|date:"M d, Y - h:i A" }}</td>
+                        <td class="py-2 px-4 border">{{ expense.description }}</td>
+                        <td class="py-2 px-4 border">{{ expense.get_category_display }}</td>
+                        <td class="py-2 px-4 border text-red-600 font-bold">KES {{ expense.amount|floatformat:2 }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="py-4 text-center text-gray-500">No expenses recorded yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+    </div>
+</div>
+
+{% endblock %}

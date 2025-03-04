@@ -1,0 +1,99 @@
+{% extends 'base/base.html' %}
+
+{% block content %}
+<div class="flex h-screen bg-gray-100">
+    <!-- Sidebar -->
+    <nav class="w-64 bg-gray-900 text-white fixed h-full">
+        <div class="p-5 text-xl font-bold border-b border-gray-700">
+            🔥 Damaged Goods Report
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <div class="ml-64 flex-1 p-10">
+        <h1 class="text-3xl font-bold mb-6">📉 Damaged Goods Report</h1>
+
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-3 gap-6 mb-6">
+            <div class="bg-red-100 p-5 rounded-lg shadow border-l-4 border-red-500">
+                <h2 class="text-lg font-semibold text-red-700">📦 Total Damaged Goods</h2>
+                <p class="text-2xl font-bold text-red-600">{{ total_damaged_goods }}</p>
+            </div>
+            <div class="bg-blue-100 p-5 rounded-lg shadow border-l-4 border-blue-500">
+                <h2 class="text-lg font-semibold text-blue-700">💰 Total Monetary Loss (KES)</h2>
+                <p class="text-2xl font-bold text-blue-600">KES {{ total_loss|floatformat:2 }}</p>
+            </div>
+            <div class="bg-green-100 p-5 rounded-lg shadow border-l-4 border-green-500">
+                <h2 class="text-lg font-semibold text-green-700">📏 Total Lost Quantity</h2>
+                <p class="text-2xl font-bold text-green-600">{{ total_lost_quantity }}</p>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <form method="GET" class="mb-6 flex gap-4">
+            <input type="date" name="date" value="{{ request.GET.date }}" class="p-2 border rounded">
+            <select name="shop" class="p-2 border rounded">
+                <option value="">All Shops</option>
+                {% for shop in shops %}
+                <option value="{{ shop.id }}" {% if request.GET.shop==shop.id|stringformat:"s" %}selected{% endif %}>
+                    {{ shop.name }}
+                </option>
+                {% endfor %}
+            </select>
+            <select name="seller" class="p-2 border rounded">
+                <option value="">All Sellers</option>
+                {% for seller in sellers %}
+                <option value="{{ seller.id }}" {% if request.GET.seller==seller.id|stringformat:"s" %}selected{% endif
+                    %}>
+                    {{ seller.username }}
+                </option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Filter</button>
+        </form>
+
+        <!-- Export Buttons -->
+        <div class="flex justify-end mb-4">
+            <a href="{% url 'sales:export_damaged_goods_csv' %}"
+                class="bg-green-600 text-white px-4 py-2 rounded mr-2">📥 Export CSV</a>
+            <a href="{% url 'sales:export_report_pdf' %}" class="bg-red-600 text-white px-4 py-2 rounded">📥 Export
+                PDF</a>
+        </div>
+
+        <!-- Damaged Goods Table -->
+        <section class="bg-white p-6 shadow rounded-lg">
+            <h2 class="text-2xl font-semibold mb-4">🛠️ Damaged Goods Records</h2>
+
+            <table class="min-w-full bg-white border border-gray-300 rounded-lg">
+                <thead class="bg-gray-200">
+                    <tr>
+                        <th class="py-2 px-4 border">Date Damaged</th>
+                        <th class="py-2 px-4 border">Product</th>
+                        <th class="py-2 px-4 border">Seller</th>
+                        <th class="py-2 px-4 border">Quantity</th>
+                        <th class="py-2 px-4 border">Entry Price (KES)</th>
+                        <th class="py-2 px-4 border">Total Loss (KES)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in damaged_goods %}
+                    <tr class="border-t">
+                        <td class="py-2 px-4 border">{{ item.date_damaged|date:"M d, Y" }}</td>
+                        <td class="py-2 px-4 border">{{ item.product.name }}</td>
+                        <td class="py-2 px-4 border">{{ item.seller.username }}</td>
+                        <td class="py-2 px-4 border">{{ item.quantity }}</td>
+                        <td class="py-2 px-4 border">KES {{ item.product.entry_price|floatformat:2 }}</td>
+                        <td class="py-2 px-4 border text-red-600 font-bold">KES {{ item.quantity|floatformat:2 }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="py-4 text-center text-gray-500">No damaged goods recorded yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+    </div>
+</div>
+
+{% endblock %}

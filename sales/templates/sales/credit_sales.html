@@ -1,0 +1,185 @@
+{% extends 'base/base.html' %}
+
+{% block content %}
+<div class="flex h-screen bg-gray-100">
+    <!-- Sidebar -->
+    <nav class="w-64 bg-gray-900 text-white fixed h-full">
+        <div class="p-5 text-xl font-bold border-b border-gray-700">
+            🛒 Sales Management
+        </div>
+        <ul class="mt-5 space-y-2">
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="">📊 Dashboard</a>
+            </li>
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="{% url 'sales:sales_list' %}">💰 Back to Sales</a>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- Right Content Area -->
+    <div class="ml-64 flex-1 p-6 overflow-auto">
+        <div class="flex justify-center">
+            <h1 class="text-3xl font-bold mb-6">💳 Credit Sales Overview</h1>
+        </div>
+
+        <!-- Credit Sales Summary Section -->
+        <div class="flex flex-wrap gap-4 mb-6">
+
+            <!-- Credit Sales Count -->
+            <div
+                class="flex items-center bg-blue-500 text-white px-4 py-3 rounded-md shadow-md w-52 transform transition duration-300 hover:scale-105 hover:shadow-lg">
+                <span class="text-2xl">🛒</span>
+                <div class="ml-3">
+                    <h2 class="text-sm font-semibold">Credit Sales Count</h2>
+                    <p class="text-lg font-bold">{{ total_credit_sales }}</p>
+                </div>
+            </div>
+
+            <!-- Total Credit Sales Amount -->
+            <div
+                class="flex items-center bg-green-500 text-white px-4 py-3 rounded-md shadow-md w-52 transform transition duration-300 hover:scale-105 hover:shadow-lg">
+                <span class="text-2xl">💰</span>
+                <div class="ml-3">
+                    <h2 class="text-sm font-semibold">Total Credit Sales</h2>
+                    <p class="text-lg font-bold">KES {{ total_credit_sales_amount|floatformat:2 }}</p>
+                </div>
+            </div>
+
+            <!-- Total Partial Payments -->
+            <div
+                class="flex items-center bg-yellow-500 text-white px-4 py-3 rounded-md shadow-md w-52 transform transition duration-300 hover:scale-105 hover:shadow-lg">
+                <span class="text-2xl">💵</span>
+                <div class="ml-3">
+                    <h2 class="text-sm font-semibold">Partial Payments</h2>
+                    <p class="text-lg font-bold">KES {{ total_partial_payments|floatformat:2 }}</p>
+                </div>
+            </div>
+
+            <!-- Credit Sales Balance (Remaining) -->
+            <div
+                class="flex items-center bg-red-500 text-white px-4 py-3 rounded-md shadow-md w-52 transform transition duration-300 hover:scale-105 hover:shadow-lg">
+                <span class="text-2xl">🔻</span>
+                <div class="ml-3">
+                    <h2 class="text-sm font-semibold">Credit Sales Balance</h2>
+                    <p class="text-lg font-bold">KES {{ total_credit_balance|floatformat:2 }}</p>
+                </div>
+            </div>
+
+            <!-- Partial Sales Count -->
+            <div
+                class="flex items-center bg-purple-500 text-white px-4 py-3 rounded-md shadow-md w-52 transform transition duration-300 hover:scale-105 hover:shadow-lg">
+                <span class="text-2xl">📊</span>
+                <div class="ml-3">
+                    <h2 class="text-sm font-semibold">Partial Sales Count</h2>
+                    <p class="text-lg font-bold">{{ total_partial_sales }}</p>
+                </div>
+            </div>
+
+        </div>
+
+
+
+        <!-- Filters Section -->
+        <section id="filters" class="mb-6 bg-white p-5 shadow-md rounded-lg">
+            <h2 class="text-xl font-bold mb-4">🔍 Search & Filter Credit Sales</h2>
+            <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+                <input type="date" id="filter-date" class="p-2 border border-gray-300 rounded-lg w-40">
+
+                <select id="filter-seller" class="p-2 border border-gray-300 rounded-lg w-48">
+                    <option value="">Select Seller</option>
+                    {% for seller in sellers %}
+                    <option value="{{ seller.username }}">{{ seller.username }}</option>
+                    {% endfor %}
+                </select>
+
+                <!-- Search Bar -->
+                <div class="flex items-center w-full sm:w-auto flex-grow sm:flex-none">
+                    <input type="text" id="search" placeholder="🔍 Search by Customer Name..."
+                        class="w-64 p-2 border border-gray-300 rounded-l-lg focus:ring focus:ring-blue-200">
+                    <button id="search-btn" class="bg-green-600 text-white px-4 py-2 rounded-r-lg">Search</button>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- Scrollable Table -->
+        <div class="bg-white shadow-md rounded-lg overflow-x-auto max-h-[500px] overflow-y-auto">
+            <table class="min-w-full table-auto border-collapse">
+                <thead class="bg-gray-800 text-white">
+                    <tr>
+                        <th class="px-4 py-3 text-left">#</th>
+                        <th class="px-4 py-3 text-left">Product</th>
+                        <th class="px-4 py-3 text-left">Quantity</th>
+                        <th class="px-4 py-3 text-left">Price</th>
+                        <th class="px-4 py-3 text-left">Total</th>
+                        <th class="px-4 py-3 text-left">Paid</th>
+                        <th class="px-4 py-3 text-left">Balance</th>
+                        <th class="px-4 py-3 text-left">Customer</th>
+                        <th class="px-4 py-3 text-left">Phone</th>
+                        <th class="px-4 py-3 text-left">Sale Date</th>
+                        {% if request.user.is_superuser or request.user.role == "manager" %}
+                        <th class="px-4 py-3 text-left">Seller</th>
+                        <th class="px-4 py-3 text-left">Shop</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200" id="sales-table-body">
+                    {% for sale in credit_sales %}
+                    <tr class="hover:bg-gray-100">
+                        <td class="px-4 py-3">{{ forloop.counter }}</td>
+                        <td class="px-4 py-3">
+                            <ul>
+                                {% for item in sale.items.all %}
+                                <li>{{ item.product.name }}</li>
+                                {% endfor %}
+                            </ul>
+                        </td>
+                        <td class="px-4 py-3">
+                            <ul>
+                                {% for item in sale.items.all %}
+                                <li>{{ item.quantity }}</li>
+                                {% endfor %}
+                            </ul>
+                        </td>
+                        <td class="px-4 py-3">
+                            <ul>
+                                {% for item in sale.items.all %}
+                                <li>{{ item.price }}</li>
+                                {% endfor %}
+                            </ul>
+                        </td>
+                        <td class="px-4 py-3">{{ sale.grand_total }}</td>
+                        <td class="px-4 py-3">{{ sale.amount_paid }}</td>
+                        <td class="px-4 py-3 text-red-600 font-bold">{{ sale.balance }}</td>
+                        <td class="px-4 py-3">{{ sale.customer_name }}</td>
+                        <td class="px-4 py-3">{{ sale.customer_phone }}</td>
+                        <td class="px-4 py-3">{{ sale.sale_date|date:"Y-m-d" }}</td>
+                        {% if request.user.is_superuser or request.user.role == "manager" %}
+                        <td class="px-4 py-3">{{ sale.seller.username }}</td>
+                        <td class="px-4 py-3">{{ sale.shop.name }}</td>
+                        {% endif %}
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="12" class="text-center text-gray-500 py-4">❌ No Credit Sales Found</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript for Filtering and Search -->
+<script>
+    document.getElementById("search-btn").addEventListener("click", function () {
+        let filter = document.getElementById("search").value.toLowerCase();
+        let rows = document.querySelectorAll("#sales-table-body tr");
+        rows.forEach(row => {
+            let customer = row.cells[7].textContent.toLowerCase();
+            row.style.display = customer.includes(filter) ? "" : "none";
+        });
+    });
+</script>
+{% endblock %}

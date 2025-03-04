@@ -2,18 +2,23 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from inventory.models import Product
 from sales.models import Sale
-from reports.models import ProfitReport
 from notifications.models import Notification
 from django.urls import reverse
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from .forms import ManagerForm
+from django.contrib.auth.models import Group
+# from shop_management.dashboard.permissions import is_superadmin
+
+def is_superadmin(user):
+    return user.role == "superadmin"
+
 
 User = get_user_model()
 
 
 from sales.models import Sale
-from reports.models import ProfitReport
+
 from inventory.models import Product
 from notifications.models import Notification
 
@@ -24,11 +29,10 @@ def get_dashboard_data(user):
     # ✅ Sales Data (Show all sales for Superadmin & Manager)
     sales = Sale.objects.all() if user.role in ["superadmin", "manager"] else Sale.objects.filter(seller=user)
     data["total_sales"] = sales.count()
-    data["total_revenue"] = sum(sale.total_amount for sale in sales)
+    data["total_revenue"] = sum(sale.grand_total for sale in sales)
 
     # ✅ Profit Analysis (Only for Superadmin & Manager)
-    profits = ProfitReport.objects.all() if user.role in ["superadmin", "manager"] else ProfitReport.objects.none()
-    data["total_profit"] = sum(profit.net_profit for profit in profits)
+
 
     # ✅ Low Stock Alert (For Everyone)
     low_stock_products = Product.objects.filter(stock_quantity__lte=5)
@@ -48,7 +52,7 @@ def get_dashboard_data(user):
 @login_required
 def superadmin_dashboard(request):
     if request.user.role != "superadmin":
-        return redirect(reverse("forbidden"))  # Redirect unauthorized users
+        return redirect("dashboard:forbidden")  # Redirect unauthorized users
 
     context = get_dashboard_data(request.user)
     return render(request, "dashboard/superadmin_dashboard.html", context)
@@ -57,7 +61,7 @@ def superadmin_dashboard(request):
 @login_required
 def manager_dashboard(request):
     if request.user.role != "manager":
-        return redirect(reverse("forbidden"))
+        return redirect("dashboard:forbidden")
 
     context = get_dashboard_data(request.user)
     return render(request, "dashboard/manager_dashboard.html", context)
@@ -70,9 +74,7 @@ def forbidden_view(request):
 # 🚀✅ Removed Seller Management (Move to Sellers App)
 # ✅ Seller features (Create, Edit, Delete, List) should now be handled inside the Sellers App.
 
-# Superadmin check
-def is_superadmin(user):
-    return user.role == "superadmin"
+
 
 
 # ✅ List all Managers
@@ -92,16 +94,20 @@ def create_manager(request):
         if form.is_valid():
             manager = form.save(commit=False)
             manager.role = "manager"
-            manager.set_password(form.cleaned_data["password"])  # Set hashed password
+            manager.is_staff = True  # ✅ Ensure manager is staff
+            manager.set_password(form.cleaned_data["password"])  # ✅ Hash password
             manager.save()
-            messages.success(request, "Manager created successfully!")
+
+            # ✅ Ensure user is in the "Manager" group
+            manager_group, _ = Group.objects.get_or_create(name="Manager")
+            manager.groups.add(manager_group)
+
+            messages.success(request, "✅ Manager created successfully!")
             return redirect("dashboard:manager_list")  # Redirect to Manager List
     else:
         form = ManagerForm()
 
     return render(request, "dashboard/createmanager.html", {"form": form})
-
-
 # ✅ Edit Manager
 @login_required
 @user_passes_test(is_superadmin)

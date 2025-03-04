@@ -1,0 +1,169 @@
+{% extends 'base/base.html' %}
+
+{% block content %}
+<div class="flex h-screen bg-gray-100">
+
+    <!-- Sidebar -->
+    <nav class="w-64 bg-gray-900 text-white fixed h-full">
+        <div class="p-5 text-xl font-bold border-b border-gray-700">
+            🛒 Sales Management
+        </div>
+        <ul class="mt-5 space-y-2">
+            <li class="py-2 px-5 hover:bg-gray-700">
+                {% if request.user.is_superuser %}
+                <a href="{% url 'dashboard:superadmin_dashboard' %}">🏠 Dashboard Home</a>
+                {% elif request.user.groups.all.0.name == 'Manager' %}
+                <a href="{% url 'dashboard:manager_dashboard' %}">🏠 Dashboard Home</a>
+                {% else %}
+
+                {% endif %}
+            </li>
+            {% if request.user.role == 'manager' or request.user.role == 'superadmin' %}
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="{% url 'inventory:add_product' %}">➕ Add Product</a>
+            </li>
+            {% endif %}
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="{% url 'inventory:product_list' %}">📦 View Products</a>
+            </li>
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="{% url 'inventory:out_of_stock_products' %}">❌ Out of Stock</a>
+            </li>
+            <li class="py-2 px-5 bg-gray-700">
+                <a href="{% url 'sales:damaged_goods_list' %}">🚨 Damaged Goods</a>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- Right Content Area -->
+    <div class="ml-64 flex-1 p-6 overflow-auto">
+        <h1 class="text-3xl font-bold mb-6">🚨 Damaged Goods Report</h1>
+
+        <div style="display: flex; gap: 15px; justify-content: center; margin-bottom: 15px;">
+            <!-- Total Monetary Loss Card -->
+            <div style="background: #ff4d4d; color: white; padding: 15px; border-radius: 8px; 
+                        box-shadow: 0px 3px 6px rgba(0,0,0,0.15); display: flex; align-items: center; 
+                        width: 200px; justify-content: space-between;">
+                <div>
+                    <h3 style="margin: 0; font-size: 16px;">Total Loss</h3>
+                    <p style="margin: 3px 0; font-size: 18px; font-weight: bold;">Kes{{ total_loss }}</p>
+                </div>
+                <i class="fas fa-dollar-sign" style="font-size: 24px;"></i>
+            </div>
+
+            <!-- Total Number of Lost Items Card -->
+            <div style="background: #007bff; color: white; padding: 15px; border-radius: 8px; 
+                        box-shadow: 0px 3px 6px rgba(0,0,0,0.15); display: flex; align-items: center; 
+                        width: 200px; justify-content: space-between;">
+                <div>
+                    <h3 style="margin: 0; font-size: 16px;">Items Lost</h3>
+                    <p style="margin: 3px 0; font-size: 18px; font-weight: bold;">{{ total_loss_count }}</p>
+                </div>
+                <i class="fas fa-box-open" style="font-size: 24px;"></i>
+            </div>
+        </div>
+
+
+        <!-- Filters Section -->
+        <section id="filters" class="mb-6 bg-white p-5 shadow-md rounded-lg">
+            <h2 class="text-xl font-bold mb-4">🔍 Filter Damaged Goods</h2>
+            <form method="GET" action="" class="grid grid-cols-4 gap-4">
+
+                <!-- Date Filter -->
+                <input type="date" name="date" value="{{ request.GET.date }}" class="border rounded px-3 py-2">
+
+                <!-- Seller Filter -->
+                <select id="sellerFilter" name="seller" class="border rounded px-3 py-2">
+                    <option value="">-- Select Seller --</option>
+                    {% for seller in sellers %}
+                    <option value="{{ seller.id }}">{{ seller.username }}</option>
+                    {% endfor %}
+                </select>
+
+
+                <!-- Product Search -->
+                <input type="text" name="q" placeholder="Search Product..." value="{{ request.GET.q }}"
+                    class="border rounded px-3 py-2">
+
+                <!-- Buttons -->
+                <div class="col-span-4 flex gap-2">
+                    <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded">🔍 Apply Filter</button>
+                    <a href="{% url 'sales:damaged_goods_list' %}" class="bg-gray-500 text-white px-4 py-2 rounded">❌
+                        Reset</a>
+                </div>
+            </form>
+        </section>
+
+
+        <!-- Action Buttons -->
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-2xl font-bold">📦 Damaged Goods List</h2>
+            <div class="flex gap-4">
+                <a href="{% url 'sales:export_damaged_goods_pdf' %}"
+                    class="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700">📄 Download PDF</a>
+                <a href="{% url 'sales:export_damaged_goods_csv' %}"
+                    class="bg-green-600 text-white px-4 py-2 rounded shadow hover:bg-green-700">📂 Download CSV</a>
+            </div>
+        </div>
+
+        <!-- Scrollable Table -->
+        <div class="bg-white shadow-md rounded-lg overflow-x-auto max-h-[500px] overflow-y-auto">
+            <table class="min-w-full table-auto border-collapse">
+                <thead class="bg-gray-800 text-white">
+                    <tr>
+                        <th class="px-4 py-3 text-left">#</th>
+                        <th class="px-4 py-3 text-left">Product</th>
+                        <th class="px-4 py-3 text-left">Quantity</th>
+                        <th class="px-4 py-3 text-left">Entry Price</th>
+                        <th class="px-4 py-3 text-left">Total Loss</th>
+                        <th class="px-4 py-3 text-left">Seller</th>
+                        <th class="px-4 py-3 text-left">Date</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for item in damaged_goods %}
+                    <tr class="hover:bg-gray-100">
+                        <td class="px-4 py-3">{{ forloop.counter }}</td>
+                        <td class="px-4 py-3">{{ item.product.name }}</td>
+                        <td class="px-4 py-3">{{ item.quantity }}</td>
+                        <td class="px-4 py-3">{{ item.product.entry_price|floatformat:2 }}</td>
+                        <td class="px-4 py-3 text-red-600 font-bold" data-price="{{ item.product.entry_price }}"
+                            data-quantity="{{ item.quantity }}">
+                            <!-- Placeholder for total loss, JavaScript will update this -->
+                            <strong class="total-loss"></strong>
+                        </td>
+                        <td class="px-4 py-3">{{ item.seller|default:"Unknown" }}</td>
+                        <td class="px-4 py-3">{{ item.date_damaged }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center text-gray-500 py-4">No damaged goods recorded.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+
+            </table>
+        </div>
+    </div>
+</div>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const urlParams = new URLSearchParams(window.location.search);
+        const selectedSeller = urlParams.get("seller");
+        if (selectedSeller) {
+            document.getElementById("sellerFilter").value = selectedSeller;
+        }
+    });
+    document.addEventListener("DOMContentLoaded", function () {
+        document.querySelectorAll('.text-red-600.font-bold').forEach(function (td) {
+            let price = parseFloat(td.getAttribute('data-price')) || 0;
+            let quantity = parseInt(td.getAttribute('data-quantity')) || 0;
+            let totalLoss = (price * quantity).toFixed(2);
+
+            // Update the total loss inside <strong>
+            td.querySelector('.total-loss').textContent = `${totalLoss}`;
+        });
+
+    });
+</script>
+{% endblock %}

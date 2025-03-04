@@ -1,0 +1,107 @@
+{% extends 'base/base.html' %}
+
+{% block content %}
+<div class="flex h-screen bg-gray-100">
+    <!-- Sidebar -->
+    <nav class="w-64 bg-gray-900 text-white fixed h-full">
+        <div class="p-5 text-xl font-bold border-b border-gray-700">
+            📦 Inventory Management
+        </div>
+        <ul class="mt-5 space-y-2">
+            <li class="py-2 px-5 hover:bg-gray-700">
+                {% if request.user.is_superuser %}
+                <a href="{% url 'dashboard:superadmin_dashboard' %}">🏠 Dashboard Home</a>
+                {% elif request.user.groups.all.0.name == 'Manager' %}
+                <a href="{% url 'dashboard:manager_dashboard' %}">🏠 Dashboard Home</a>
+                {% else %}
+
+                {% endif %}
+            </li>
+            {% if request.user.role == 'manager' or request.user.role == 'superadmin' %}
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="{% url 'inventory:add_product' %}">➕ Add Product</a>
+            </li>
+            {% endif %}
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="{% url 'inventory:product_list' %}">📦 View Products</a>
+            </li>
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="{% url 'inventory:out_of_stock_products' %}">❌ Out of Stock</a>
+            </li>
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="{% url 'sales:damaged_goods_list' %}">🚨 Damaged Goods</a>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- Main Content Area -->
+    <div class="ml-64 flex-1 p-10">
+        <h1 class="text-3xl font-bold mb-6">🚨 Mark Stock as Damaged</h1>
+
+        <section class="bg-white p-6 shadow rounded-lg">
+            <h2 class="text-2xl font-semibold mb-4">Select Product</h2>
+
+            <form method="POST" id="damagedForm">
+                {% csrf_token %}
+
+                <label class="block mb-2 font-semibold">📦 Select Product</label>
+                <select name="product" id="product" required
+                    class="w-full px-4 py-2 border rounded focus:ring focus:ring-blue-300">
+                    <option value="">-- Select Product --</option>
+                    {% for product in products %}
+                    <option value="{{ product.id }}">{{ product.name }} (Stock: {{ product.stock_quantity }})</option>
+                    {% endfor %}
+                </select>
+
+                <label class="block mt-4 mb-2 font-semibold">🔢 Quantity to Mark as Damaged</label>
+                <input type="number" name="damaged_quantity" id="damaged_quantity" min="1"
+                    class="w-full px-4 py-2 border rounded focus:ring focus:ring-blue-300" required>
+
+                <!-- SweetAlert2 Confirmation -->
+                <button type="button" onclick="confirmDamaged()"
+                    class="mt-4 bg-red-600 text-white px-5 py-2 rounded hover:bg-red-700 transition">
+                    🚨 Confirm Mark as Damaged
+                </button>
+                <a href="{% url 'inventory:product_list' %}" class="ml-3 text-gray-600 hover:text-gray-800">Cancel</a>
+            </form>
+        </section>
+    </div>
+</div>
+
+<!-- Include SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<!-- JavaScript for SweetAlert2 Confirmation -->
+<script>
+    function confirmDamaged() {
+        let productSelect = document.getElementById("product");
+        let quantity = document.getElementById("damaged_quantity").value;
+
+        if (!productSelect.value || quantity < 1) {
+            Swal.fire({
+                icon: "error",
+                title: "Oops...",
+                text: "Please select a valid product and enter a quantity!",
+            });
+            return;
+        }
+
+        let selectedProduct = productSelect.options[productSelect.selectedIndex].text;
+
+        Swal.fire({
+            title: "Confirm Action",
+            text: `Are you sure you want to mark "${selectedProduct}" as damaged (Quantity: ${quantity})?`,
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#d33",
+            cancelButtonColor: "#3085d6",
+            confirmButtonText: "Yes, mark as damaged!",
+        }).then((result) => {
+            if (result.isConfirmed) {
+                document.getElementById("damagedForm").submit();
+            }
+        });
+    }
+</script>
+
+{% endblock %}

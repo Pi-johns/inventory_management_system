@@ -18,31 +18,156 @@
                 <a href="{% url 'shops:shop_list' %}">🏪 Manage Shops</a>
             </li>
             <li class="py-2 px-5 hover:bg-gray-700">
-                <a href="{% url 'sales:sales_dashboard' %}">🛒 Sales Overview</a>
+                <a href="{% url 'sales:sales_list' %}">🛒 Sales</a>
             </li>
             <li class="py-2 px-5 hover:bg-gray-700">
-                <a href="{% url 'inventory:product_list' %}">📦 Inventory management</a>
+                <a href="{% url 'inventory:product_list' %}">📦 Inventory Management</a>
+            </li>
+            <li class="py-2 px-5 hover:bg-gray-700"><a href="{% url 'expenses:expense_list' %}">📋 Expenses
+                    Management</a>
             </li>
             <li class="py-2 px-5 hover:bg-gray-700">
-                <a href="{% url 'reports:sales_report' %}">📊 Sales Reports</a>
+                <a href="{% url 'reports_home' %}">📊 Reports Dashboard</a>
             </li>
             <li class="py-2 px-5 hover:bg-gray-700">
-                <a href="{% url 'notifications:get_notifications' %}">🔔 Notifications ({{ notifications.count }})</a>
+                <a href="{% url 'shops:business_period_settings' %}">
+                    ⚙️ Business Period Settings
+                </a>
             </li>
             <li class="py-2 px-5 hover:bg-red-600">
                 <a href="{% url 'accounts:logout' %}">🚪 Logout</a>
             </li>
         </ul>
     </nav>
+    {% if period_alert %}
+    <div class="mt-4 p-3 bg-yellow-500 text-white rounded-lg">
+        {{ period_alert }}
+    </div>
+    {% endif %}
 
     <!-- Content Area -->
     <div class="ml-64 flex-1 p-10">
         <h1 class="text-3xl font-bold">Welcome, {{ request.user.username }}</h1>
 
+        <!-- Dashboard Stats -->
+        <div class="grid grid-cols-4 gap-5 mt-5">
+            <div
+                class="bg-green-600 text-white p-5 shadow rounded-lg transform transition duration-300 hover:scale-105 hover:shadow-lg">
+                <h2 class="text-lg font-semibold">Total Sales</h2>
+                <p class="text-2xl font-bold">{{ total_sales }}</p>
+            </div>
+            <div
+                class="bg-blue-600 text-white p-5 shadow rounded-lg transform transition duration-300 hover:scale-105 hover:shadow-lg">
+                <h2 class="text-lg font-semibold">Revenue</h2>
+                <p class="text-2xl font-bold">KES {{ total_revenue }}</p>
+            </div>
+            <div
+                class="bg-yellow-500 text-gray-900 p-5 shadow rounded-lg transform transition duration-300 hover:scale-105 hover:shadow-lg">
+                <h2 class="text-lg font-semibold">Credit Sales</h2>
+                <p class="text-xl font-bold">{{ total_credit_sales }}</p>
+            </div>
+            <div
+                class="bg-gray-700 text-white p-5 shadow rounded-lg transform transition duration-300 hover:scale-105 hover:shadow-lg">
+                <h2 class="text-lg font-semibold">Low Stock Alerts</h2>
+                <p class="text-2xl font-bold">{{ low_stock_items.count }}</p>
+            </div>
+        </div>
+
+
+        <!-- Top Shops & Products -->
+        <div class="grid grid-cols-2 gap-5 mt-5">
+            <div class="bg-white p-5 shadow rounded-lg">
+                <h2 class="text-lg font-semibold">🏆 Top Performing Shops</h2>
+
+                {% if top_shops %}
+                <div class="grid grid-cols-2 gap-5 mt-4">
+                    {% for shop in top_shops %}
+                    <div class="bg-gray-100 p-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300">
+                        <h3 class="text-lg font-bold text-blue-600">{{ shop.name }}</h3>
+                        <p class="text-gray-700">💰 Total Sales: <span class="font-semibold">KES {{
+                                shop.total_sales|default:0 }}</span></p>
+                        <p class="text-green-600">💵 Cash Sales: <span class="font-semibold">KES {{
+                                shop.total_cash_sales|default:0 }}</span></p>
+                        <p class="text-red-500">📝 Credit Sales: <span class="font-semibold">KES {{
+                                shop.total_credit_sales|default:0 }}</span></p>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-gray-500 mt-3">No sales data available.</p>
+                {% endif %}
+            </div>
+
+            <div class="bg-white p-5 shadow rounded-lg">
+                <h2 class="text-lg font-semibold">🔥 Best-Selling Product</h2>
+                <p class="text-xl font-bold">{{ top_product.name }}</p>
+                <p class="text-gray-500">Sold: {{ top_product.total_sold }}</p>
+            </div>
+        </div>
+
+        <!-- Latest Sales -->
         <div class="bg-white p-5 mt-5 shadow rounded-lg">
-            <h2 class="text-lg font-semibold">Sales & Inventory Trends</h2>
+            <h2 class="text-lg font-semibold">🛍️ Latest Sales</h2>
+            <table class="w-full mt-2">
+                <thead>
+                    <tr class="bg-gray-200">
+                        <th class="text-left p-2">Date</th>
+                        <th class="text-left p-2">Seller</th>
+                        <th class="text-left p-2">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sale in latest_sales %}
+                    <tr class="border-b">
+                        <td class="p-2">{{ sale.date }}</td>
+                        <td class="p-2">{{ sale.seller.username }}</td>
+                        <td class="p-2 text-green-600">KES {{ sale.amount }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Profit & Loss Overview -->
+        <div class="grid grid-cols-2 gap-5 mt-5">
+            <div class="bg-white p-5 shadow rounded-lg">
+                <h2 class="text-lg font-semibold">📈 Net Profit</h2>
+                <p class="text-2xl font-bold text-green-600">KES {{ net_profit }}</p>
+            </div>
+            <div class="bg-white p-5 shadow rounded-lg">
+                <h2 class="text-lg font-semibold">📉 Losses</h2>
+                <p class="text-2xl font-bold text-red-600">KES {{ total_losses }}</p>
+            </div>
+        </div>
+
+        <!-- Sales & Inventory Trends Chart -->
+        <div class="bg-white p-5 mt-5 shadow rounded-lg">
+            <h2 class="text-lg font-semibold">📊 Sales & Inventory Trends</h2>
             <canvas id="managerChart"></canvas>
         </div>
     </div>
 </div>
+
+<!-- Chart.js Integration -->
+<script>
+    var ctx = document.getElementById('managerChart').getContext('2d');
+    var managerChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: {{ sales_trends.labels | safe }},
+    datasets: [{
+        label: 'Sales',
+        data: {{ sales_trends.sales_data | safe }},
+        borderColor: 'blue',
+        borderWidth: 2
+            }, {
+        label: 'Inventory',
+        data: {{ sales_trends.inventory_data | safe }},
+        borderColor: 'orange',
+        borderWidth: 2
+            }]
+        }
+    });
+</script>
+
 {% endblock %}

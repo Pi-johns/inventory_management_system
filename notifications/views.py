@@ -1,51 +1,56 @@
-import json
-from django.http import JsonResponse
+from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
-from channels.layers import get_channel_layer
-from asgiref.sync import async_to_sync
+from django.db.models import Q
 from .models import Notification
-from accounts.models import CustomUser
-from django.shortcuts import render, redirect
-
-
-def send_notification(user=None, message=""):
-    """Send a notification to a specific user or broadcast to all Managers & Superadmins."""
-    if user:
-        # Create a notification for a specific user (e.g., Seller)
-        Notification.objects.create(user=user, message=message)
-        group_name = f'notifications_{user.id}'
-    else:
-        # Broadcast to all Managers & Superadmins
-        Notification.objects.create(user=None, message=message)
-        group_name = 'notifications_admins'
-    
-    # Get the channel layer for WebSockets
-    channel_layer = get_channel_layer()
-
-    if channel_layer is None:
-        print("⚠️ ERROR: Channel layer is not available. Notification not sent.")
-        return  # Prevents crash
-
-    # Send the notification via WebSockets (if possible)
-    async_to_sync(channel_layer.group_send)(
-        group_name,
-        {"type": "send_notification", "message": message}
-    )
-
+from shops.models import Shop  # Assuming there's a Shop model
+from sellers.models import Seller  # Assuming there's a Seller model
 
 @login_required
-def get_notifications(request):
-    """Fetch notifications for the logged-in user."""
-    if request.user.role in ['superadmin', 'manager']:
-        notifications = Notification.objects.filter(user__isnull=True) | Notification.objects.filter(user=request.user)
+def all_notifications(request):
+    """View to display and filter notifications based on role."""
+    user = request.user
+    notifications = Notification.objects.all().order_by('-created_at')
+
+    # Get filter values from the request
+    date_filter = request.GET.get('date', '').strip()
+    shop_filter = request.GET.get('shop', '').strip()
+    seller_filter = request.GET.get('seller', '').strip()
+
+    # Sellers: See only their own notifications & filter by date
+    if user.role == "seller":
+        notifications = notifications.filter(user=user)
+        if date_filter:
+            notifications = notifications.filter(created_at__date=date_filter)
+
+        # No need for shops and sellers dropdown for sellers
+        shops, sellers = None, None  
+        selected_shop, selected_seller = None, None
+
+    # Managers & Superadmins: Can filter by Date, Shop, Seller (one, two, or all at once)
     else:
-        notifications = Notification.objects.filter(user=request.user)
+        if date_filter:
+            notifications = notifications.filter(created_at__date=date_filter)
+        if shop_filter:
+            notifications = notifications.filter(shop__id=shop_filter)
+        if seller_filter:
+            notifications = notifications.filter(user__id=seller_filter)
 
-    return render(request, "notifications/notification_list.html")
+        # Fetch shops and sellers for filter options
+        shops = Shop.objects.all()
+        sellers = Seller.objects.all()
+        
+        # Preserve selected values
+        selected_shop = shop_filter
+        selected_seller = seller_filter
 
-@login_required
-def mark_as_read(request):
-    """Mark all notifications as read for the logged-in user."""
-    Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
-    return redirect("notifications_mark_as_read")
-
+    context = {
+        'notifications': notifications,
+        'shops': shops,
+        'sellers': sellers,
+        'selected_shop': selected_shop,
+        'selected_seller': selected_seller,
+        'selected_date': date_filter,
+        'shops': shops,
+        'sellers': sellers,  # Preserve selected date
+    }
+    return render(request, 'notifications/notifications.html', context)

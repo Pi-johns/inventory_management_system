@@ -1,0 +1,32 @@
+{% extends "base/base.html" %}
+
+{% block content %}
+<div class="p-5 bg-white shadow rounded-lg">
+    <h2 class="text-lg font-semibold text-blue-600">⚙️ Business Calculation Period</h2>
+
+    {% if period_config %}
+    <p class="text-gray-600 mt-2">
+        Current Period: <strong>{{ period_config.period_value }} {{ period_config.get_period_type_display }}</strong>
+    </p>
+    <p class="text-gray-600">
+        Next Calculation Date: <strong>{{ period_config.next_calculation_date }}</strong>
+    </p>
+    {% endif %}
+
+    <form method="POST" class="mt-5">
+        {% csrf_token %}
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="block text-gray-700">Period Value</label>
+                {{ form.period_value }}
+            </div>
+            <div>
+                <label class="block text-gray-700">Period Type</label>
+                {{ form.period_type }}
+            </div>
+        </div>
+
+        <button type="submit" class="mt-5 px-5 py-2 bg-blue-600 text-white rounded-lg shadow">Save Settings</button>
+    </form>
+</div>
+{% endblock %}

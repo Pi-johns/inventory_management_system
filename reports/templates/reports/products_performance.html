@@ -1,0 +1,86 @@
+{% extends 'base/base.html' %}
+
+{% block content %}
+<div class="flex h-screen bg-gray-100">
+    <!-- Sidebar -->
+    <nav class="w-64 bg-gray-900 text-white fixed h-full">
+        <div class="p-5 text-xl font-bold border-b border-gray-700">
+            🏆 Top Selling Products
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <div class="ml-64 flex-1 p-10">
+        <h1 class="text-3xl font-bold mb-6">📊 Top 5 Best Performing Items</h1>
+
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-3 gap-6 mb-6">
+            <div class="bg-yellow-100 p-5 rounded-lg shadow border-l-4 border-yellow-500">
+                <h2 class="text-lg font-semibold text-yellow-700">🏅 Best Selling Product</h2>
+                <p class="text-2xl font-bold text-yellow-600">{{ best_selling_product }}</p>
+            </div>
+            <div class="bg-blue-100 p-5 rounded-lg shadow border-l-4 border-blue-500">
+                <h2 class="text-lg font-semibold text-blue-700">🛒 Total Sales</h2>
+                <p class="text-2xl font-bold text-blue-600">KES {{ total_sales_amount|floatformat:2 }}</p>
+            </div>
+            <div class="bg-green-100 p-5 rounded-lg shadow border-l-4 border-green-500">
+                <h2 class="text-lg font-semibold text-green-700">📦 Total Quantity Sold</h2>
+                <p class="text-2xl font-bold text-green-600">{{ total_quantity_sold }}</p>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <form method="GET" class="mb-6 flex gap-4">
+            <select name="shop" class="p-2 border rounded">
+                <option value="">All Shops</option>
+                {% for shop in shops %}
+                <option value="{{ shop.id }}" {% if request.GET.shop==shop.id|stringformat:"s" %}selected{% endif %}>
+                    {{ shop.name }}
+                </option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Filter</button>
+        </form>
+
+        <!-- Export Buttons -->
+        <div class="flex justify-end mb-4">
+            <a href="{% url 'sales:export_top_products_csv' %}" class="bg-green-600 text-white px-4 py-2 rounded">📥
+                Export CSV</a>
+        </div>
+
+        <!-- Top Products Table -->
+        <section class="bg-white p-6 shadow rounded-lg">
+            <h2 class="text-2xl font-semibold mb-4">🏆 Top 5 Best-Selling Products</h2>
+
+            <table class="min-w-full bg-white border border-gray-300 rounded-lg">
+                <thead class="bg-gray-200">
+                    <tr>
+                        <th class="py-2 px-4 border">Rank</th>
+                        <th class="py-2 px-4 border">Product Name</th>
+                        <th class="py-2 px-4 border">Category</th>
+                        <th class="py-2 px-4 border">Total Quantity Sold</th>
+                        <th class="py-2 px-4 border">Total Sales (KES)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for product in top_products %}
+                    <tr class="border-t">
+                        <td class="py-2 px-4 border font-bold">#{{ forloop.counter }}</td>
+                        <td class="py-2 px-4 border">{{ product.name }}</td>
+                        <td class="py-2 px-4 border">{{ product.category.name }}</td>
+                        <td class="py-2 px-4 border">{{ product.total_quantity_sold }}</td>
+                        <td class="py-2 px-4 border font-bold text-blue-600">KES {{ product.total_sales|floatformat:2 }}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="py-4 text-center text-gray-500">No sales records available.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+    </div>
+</div>
+
+{% endblock %}

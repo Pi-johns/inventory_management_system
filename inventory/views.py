@@ -4,7 +4,7 @@ from django.contrib import messages
 from .models import Product
 from django.db import models
 from .forms import ProductForm
-from notifications.views import send_notification
+
 
 
 def is_manager(user):
@@ -23,11 +23,6 @@ def add_product(request):
         if form.is_valid():
             product = form.save()
             messages.success(request, "✅ Product added successfully!")
-
-            # 🔹 Notify Superadmins & Managers about the new product
-            send_notification(None, f"🆕 New product added: {product.name}.")
-            print("DEBUG: Redirecting to product list")
-
             return redirect("inventory:product_list")
     else:
         form = ProductForm()
@@ -46,9 +41,7 @@ def update_product(request, product_id):
             form.save()
             messages.success(request, f"✅ Product '{product.name}' updated successfully!")
 
-            # 🔹 Notify Superadmins & Managers about the product update
-            send_notification(None, f"🔄 Product updated: {product.name}.")
-
+            
             return redirect("inventory:product_list")  # Ensure this matches your `urls.py`
     else:
         form = ProductForm(instance=product)
@@ -63,13 +56,9 @@ def delete_product(request, product_id):
     product.delete()
     messages.success(request, "Product deleted successfully!")
 
-    # 🔹 Notify Superadmins & Managers about the product deletion
-    send_notification(None, f"Product deleted: {product_name}.")
-
     return redirect("inventory:product_list")
 
 @login_required
-@user_passes_test(is_manager)
 def product_list(request):
     """Managers see full stock details, sellers see only stock levels with search functionality."""
     
@@ -82,20 +71,60 @@ def product_list(request):
     else:
         products = Product.objects.all()
 
-    # 🔹 Low Stock Alerts - Avoid Duplicate Notifications
-    low_stock_products = products.filter(stock_quantity__lt=models.F("low_stock_threshold"))
-    
+    # 🔹 Categorize stock levels
+    low_stock_products = products.filter(stock_quantity__lt=5)  # Adjust threshold as needed
+    out_of_stock_products = products.filter(stock_quantity=0)
+
     # Store notified products in session to prevent repeated alerts
     if "notified_products" not in request.session:
         request.session["notified_products"] = []
 
     for product in low_stock_products:
         if product.id not in request.session["notified_products"]:
-            send_notification(None, f"⚠️ Low stock alert: {product.name} (Remaining: {product.stock_quantity}).")
             request.session["notified_products"].append(product.id)  # Mark as notified
+    
+    # 🛒 Calculate current stock value for each product and total stock value
+    for product in products:
+        product.current_stock_value = product.stock_quantity * product.entry_price
+    
+    total_stock_value = sum(product.current_stock_value for product in products)
 
     context = {
         "products": products,
         "query": query,
+        "total_stock_value": total_stock_value,  # Pass to template
+        "low_stock_products": low_stock_products,
+        "total_low_stock": low_stock_products.count(),
+        "critical_stock": low_stock_products.filter(stock_quantity__lte=2).count(),
+        "out_of_stock_products": out_of_stock_products,
+        "total_out_of_stock": out_of_stock_products.count(),
     }
     return render(request, "inventory/inventory.html", context)
+
+@login_required
+def low_stock_products_list(request):
+    """List all products below the stock threshold"""
+    threshold = 5  # Adjust threshold as needed
+    low_stock_products = Product.objects.filter(stock_quantity__lt=threshold)
+
+    context = {
+        "low_stock_products": low_stock_products,
+        "total_low_stock": low_stock_products.count(),
+        "critical_stock": low_stock_products.filter(stock_quantity__lte=2).count(),
+    }
+    return render(request, "inventory/low_products_list.html", context)
+
+
+
+@login_required
+def out_of_stock_products(request):
+    """Fetch all products that are completely out of stock"""
+    out_of_stock_products = Product.objects.filter(stock_quantity=0)
+
+    context = {
+        "out_of_stock_products": out_of_stock_products,
+        "total_out_of_stock": out_of_stock_products.count(),
+    }
+    return render(request, "inventory/outstock.html", context)
+
+

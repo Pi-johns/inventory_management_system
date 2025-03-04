@@ -6,20 +6,30 @@ class Product(models.Model):
     stock_quantity = models.PositiveIntegerField()
     low_stock_threshold = models.PositiveIntegerField(default=5)
     created_at = models.DateTimeField(auto_now_add=True)
-    
 
-    @property
-    def stock(self):
-        """Alias for stock_quantity to avoid errors."""
-        return self.stock_quantity
+    def update_stock(self, quantity):
+        """
+        Safely updates stock by decreasing the given quantity.
+        Logs stock changes in `StockLog`.
+        """
+        if quantity > self.stock_quantity:
+            raise ValueError(f"Not enough stock for {self.name}. Available: {self.stock_quantity}")
+        
+        self.stock_quantity -= quantity
+        self.save()
+        StockLog.objects.create(
+            product=self,
+            change=-quantity,
+            description=f"Sold {quantity} units"
+        )
 
     def is_low_stock(self):
         """Check if product stock is below the threshold."""
-        return self.stock <= self.low_stock_threshold  # Now using `stock`
+        return self.stock_quantity <= self.low_stock_threshold  # ✅ Now uses `stock_quantity`
 
     def __str__(self):
-        return f"{self.name} ({self.stock} left)"
-    
+        return f"{self.name} ({self.stock_quantity} left)"  # ✅ Display correct stock
+
 class StockLog(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     change = models.IntegerField()  # Positive for addition, Negative for deduction

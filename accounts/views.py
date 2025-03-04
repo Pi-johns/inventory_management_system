@@ -14,7 +14,7 @@ def redirect_user(user):
     elif user.is_manager:
         return redirect('dashboard:manager_dashboard')  # ✅ Redirect to Manager Dashboard
     elif user.is_seller:
-        return redirect('dashboard:seller_dashboard')  # ✅ Redirect to Seller Dashboard
+        return redirect('sellers:seller_dashboard')  # ✅ Redirect to Seller Dashboard
     return redirect('home')
 
 def register(request):

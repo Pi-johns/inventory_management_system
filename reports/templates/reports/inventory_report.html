@@ -1,0 +1,96 @@
+{% extends 'base/base.html' %}
+
+{% block content %}
+<div class="flex h-screen bg-gray-100">
+    <!-- Sidebar -->
+    <nav class="w-64 bg-gray-900 text-white fixed h-full">
+        <div class="p-5 text-xl font-bold border-b border-gray-700">
+            📦 Stock Report
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <div class="ml-64 flex-1 p-10">
+        <h1 class="text-3xl font-bold mb-6">📋 Inventory Stock Report</h1>
+
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-3 gap-6 mb-6">
+            <div class="bg-blue-100 p-5 rounded-lg shadow border-l-4 border-blue-500">
+                <h2 class="text-lg font-semibold text-blue-700">📦 Total Products in Stock</h2>
+                <p class="text-2xl font-bold text-blue-600">{{ total_products }}</p>
+            </div>
+            <div class="bg-green-100 p-5 rounded-lg shadow border-l-4 border-green-500">
+                <h2 class="text-lg font-semibold text-green-700">💰 Total Stock Value (KES)</h2>
+                <p class="text-2xl font-bold text-green-600">KES {{ total_stock_value|floatformat:2 }}</p>
+            </div>
+            <div class="bg-red-100 p-5 rounded-lg shadow border-l-4 border-red-500">
+                <h2 class="text-lg font-semibold text-red-700">⚠️ Low Stock Alerts</h2>
+                <p class="text-2xl font-bold text-red-600">{{ low_stock_count }}</p>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <form method="GET" class="mb-6 flex gap-4">
+            <input type="text" name="product" placeholder="Search Product" value="{{ request.GET.product }}"
+                class="p-2 border rounded">
+            <select name="category" class="p-2 border rounded">
+                <option value="">All Categories</option>
+                {% for category in categories %}
+                <option value="{{ category.id }}" {% if request.GET.category==category.id|stringformat:"s" %}selected{%
+                    endif %}>
+                    {{ category.name }}
+                </option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Filter</button>
+        </form>
+
+        <!-- Export Buttons -->
+        <div class="flex justify-end mb-4">
+            <a href="{% url 'inventory:export_stock_csv' %}" class="bg-green-600 text-white px-4 py-2 rounded">📥 Export
+                CSV</a>
+        </div>
+
+        <!-- Stock Table -->
+        <section class="bg-white p-6 shadow rounded-lg">
+            <h2 class="text-2xl font-semibold mb-4">📊 Stock Records</h2>
+
+            <table class="min-w-full bg-white border border-gray-300 rounded-lg">
+                <thead class="bg-gray-200">
+                    <tr>
+                        <th class="py-2 px-4 border">Product Name</th>
+                        <th class="py-2 px-4 border">Category</th>
+                        <th class="py-2 px-4 border">Stock Quantity</th>
+                        <th class="py-2 px-4 border">Entry Price (KES)</th>
+                        <th class="py-2 px-4 border">Total Value (KES)</th>
+                        <th class="py-2 px-4 border">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for product in products %}
+                    <tr class="border-t {% if product.is_low_stock %}bg-red-100{% endif %}">
+                        <td class="py-2 px-4 border">{{ product.name }}</td>
+                        <td class="py-2 px-4 border">{{ product.category.name }}</td>
+                        <td class="py-2 px-4 border">{{ product.stock_quantity }}</td>
+                        <td class="py-2 px-4 border">KES {{ product.entry_price|floatformat:2 }}</td>
+                        <td class="py-2 px-4 border">KES {{ product.total_value|floatformat:2 }}</td>
+                        <td class="py-2 px-4 border {% if product.is_low_stock %}text-red-600 font-bold{% endif %}">
+                            {% if product.is_low_stock %}
+                            ⚠️ Low Stock
+                            {% else %}
+                            ✅ In Stock
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="py-4 text-center text-gray-500">No products available in stock.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+    </div>
+</div>
+
+{% endblock %}

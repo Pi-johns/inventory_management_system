@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'dashboard',
     'shops',
     'sellers',
+    'expenses',
 
     
 
@@ -80,10 +81,12 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'notifications.context_processors.notifications_processor',  # Added notifications processor
             ],
         },
     },
 ]
+
 
 WSGI_APPLICATION = 'shop_management.wsgi.application'
 # Define ASGI application
@@ -100,7 +103,16 @@ CHANNEL_LAYERS = {
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": "puxx",
+        "USER": "alto",
+        "PASSWORD": "h3ck3r1",
+        "HOST": "localhost",
+        "PORT": "5432",
+    }
+}
 
 
 # Password validation
@@ -124,15 +136,15 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
+# settings.py
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Africa/Nairobi'  # Set to Africa/Nairobi
 
 USE_I18N = True
 
-USE_TZ = True
-
+USE_TZ = True  # Keep this enabled for timezone-aware datetime handling
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/

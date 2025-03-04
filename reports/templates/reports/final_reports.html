@@ -1,0 +1,155 @@
+{% extends 'base/base.html' %}
+
+{% block content %}
+<div class="flex h-screen bg-gray-100">
+    <!-- Sidebar -->
+    <nav class="w-64 bg-gray-900 text-white fixed h-full">
+        <div class="p-5 text-xl font-bold border-b border-gray-700">
+            📊 Final Business Report
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <div class="ml-64 flex-1 p-10">
+        <h1 class="text-3xl font-bold mb-6">📋 Full Business Summary</h1>
+
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-3 gap-6 mb-6">
+            <div class="bg-blue-100 p-5 rounded-lg shadow border-l-4 border-blue-500">
+                <h2 class="text-lg font-semibold text-blue-700">💰 Total Sales</h2>
+                <p class="text-2xl font-bold text-blue-600">KES {{ total_sales|floatformat:2 }}</p>
+            </div>
+            <div class="bg-red-100 p-5 rounded-lg shadow border-l-4 border-red-500">
+                <h2 class="text-lg font-semibold text-red-700">📉 Total Expenses</h2>
+                <p class="text-2xl font-bold text-red-600">KES {{ total_expenses|floatformat:2 }}</p>
+            </div>
+            <div class="bg-yellow-100 p-5 rounded-lg shadow border-l-4 border-yellow-500">
+                <h2 class="text-lg font-semibold text-yellow-700">📦 Total Damages</h2>
+                <p class="text-2xl font-bold text-yellow-600">KES {{ total_damages|floatformat:2 }}</p>
+            </div>
+            <div class="bg-green-100 p-5 rounded-lg shadow border-l-4 border-green-500">
+                <h2 class="text-lg font-semibold text-green-700">🏆 Net Profit</h2>
+                <p class="text-2xl font-bold text-green-600">KES {{ net_profit|floatformat:2 }}</p>
+            </div>
+        </div>
+
+        <!-- Export Button -->
+        <div class="flex justify-end mb-4">
+            <a href="{% url 'reports:export_final_report_pdf' %}" class="bg-red-600 text-white px-4 py-2 rounded">📥
+                Export PDF</a>
+        </div>
+
+        <!-- Sales Summary Table -->
+        <section class="bg-white p-6 shadow rounded-lg mb-6">
+            <h2 class="text-2xl font-semibold mb-4">📌 Sales Summary</h2>
+            <table class="min-w-full bg-white border border-gray-300 rounded-lg">
+                <thead class="bg-gray-200">
+                    <tr>
+                        <th class="py-2 px-4 border">Total Sales</th>
+                        <th class="py-2 px-4 border">Total Cash Sales</th>
+                        <th class="py-2 px-4 border">Total Credit Sales</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="border-t">
+                        <td class="py-2 px-4 border">KES {{ total_sales|floatformat:2 }}</td>
+                        <td class="py-2 px-4 border">KES {{ total_cash_sales|floatformat:2 }}</td>
+                        <td class="py-2 px-4 border">KES {{ total_credit_sales|floatformat:2 }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Expenses Summary Table -->
+        <section class="bg-white p-6 shadow rounded-lg mb-6">
+            <h2 class="text-2xl font-semibold mb-4">📌 Expense Summary</h2>
+            <table class="min-w-full bg-white border border-gray-300 rounded-lg">
+                <thead class="bg-gray-200">
+                    <tr>
+                        <th class="py-2 px-4 border">Total Expenses</th>
+                        <th class="py-2 px-4 border">Last Expense Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="border-t">
+                        <td class="py-2 px-4 border">KES {{ total_expenses|floatformat:2 }}</td>
+                        <td class="py-2 px-4 border">
+                            {% if last_expense_date %}
+                            {{ last_expense_date|date:"M d, Y - h:i A" }}
+                            {% else %}
+                            No expenses recorded
+                            {% endif %}
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Damages Summary Table -->
+        <section class="bg-white p-6 shadow rounded-lg mb-6">
+            <h2 class="text-2xl font-semibold mb-4">📌 Damaged Goods Summary</h2>
+            <table class="min-w-full bg-white border border-gray-300 rounded-lg">
+                <thead class="bg-gray-200">
+                    <tr>
+                        <th class="py-2 px-4 border">Total Loss</th>
+                        <th class="py-2 px-4 border">Total Quantity Lost</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="border-t">
+                        <td class="py-2 px-4 border">KES {{ total_damages|floatformat:2 }}</td>
+                        <td class="py-2 px-4 border">{{ total_lost_quantity }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Stock Summary Table -->
+        <section class="bg-white p-6 shadow rounded-lg mb-6">
+            <h2 class="text-2xl font-semibold mb-4">📌 Stock Summary</h2>
+            <table class="min-w-full bg-white border border-gray-300 rounded-lg">
+                <thead class="bg-gray-200">
+                    <tr>
+                        <th class="py-2 px-4 border">Total Products in Stock</th>
+                        <th class="py-2 px-4 border">Total Stock Value</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="border-t">
+                        <td class="py-2 px-4 border">{{ total_products_in_stock }}</td>
+                        <td class="py-2 px-4 border">KES {{ total_stock_value|floatformat:2 }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Top 5 Best-Selling Products Table -->
+        <section class="bg-white p-6 shadow rounded-lg">
+            <h2 class="text-2xl font-semibold mb-4">🏆 Top 5 Best-Selling Products</h2>
+            <table class="min-w-full bg-white border border-gray-300 rounded-lg">
+                <thead class="bg-gray-200">
+                    <tr>
+                        <th class="py-2 px-4 border">Rank</th>
+                        <th class="py-2 px-4 border">Product Name</th>
+                        <th class="py-2 px-4 border">Total Sales</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for product in top_products %}
+                    <tr class="border-t">
+                        <td class="py-2 px-4 border font-bold">#{{ forloop.counter }}</td>
+                        <td class="py-2 px-4 border">{{ product.name }}</td>
+                        <td class="py-2 px-4 border">KES {{ product.total_sales|floatformat:2 }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="3" class="py-4 text-center text-gray-500">No sales records available.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+    </div>
+</div>
+
+{% endblock %}

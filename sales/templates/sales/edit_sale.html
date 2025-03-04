@@ -1,0 +1,327 @@
+{% extends 'base/base.html' %}
+
+{% block content %}
+<div class="flex h-screen bg-gray-100">
+    <nav class="w-64 bg-gray-900 text-white fixed h-full">
+        <div class="p-5 text-xl font-bold border-b border-gray-700">
+            🛒 Sales Management
+        </div>
+        <ul class="mt-5 space-y-2">
+            <li class="py-2 px-5 hover:bg-gray-700">
+                <a href="{% url 'sales:sales_list' %}">📋 Sales List</a>
+            </li>
+        </ul>
+    </nav>
+
+    <div class="ml-64 flex-1 p-10">
+        <h1 class="text-3xl font-bold">Edit Sale</h1>
+
+        <div
+            class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4 flex items-center gap-4">
+
+            <!-- Mark as Paid (Hidden if Sale is Already Paid) -->
+            {% if sale.payment_status != "paid" %}
+            <a href="{% url 'sales:mark_sale_as_paid' sale.id %}"
+                class="flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition">
+                <svg class="w-5 h-5 mr-2 text-white" fill="none" stroke="currentColor" stroke-width="2"
+                    viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
+                </svg>
+                Mark as Paid
+            </a>
+            {% endif %}
+
+            <!-- Return Sale as Damaged -->
+            <a href="{% url 'sales:return_sale_as_damaged' sale.id %}"
+                class="flex items-center px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition">
+                <svg class="w-5 h-5 mr-2 text-white" fill="none" stroke="currentColor" stroke-width="2"
+                    viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+                Return as Damaged
+            </a>
+
+            <!-- Return Sale to Stock -->
+            <a href="{% url 'sales:return_sale_to_stock' sale.id %}"
+                class="flex items-center px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition">
+                <svg class="w-5 h-5 mr-2 text-white" fill="none" stroke="currentColor" stroke-width="2"
+                    viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7"></path>
+                </svg>
+                Return to Stock
+            </a>
+
+        </div>
+
+        <div class="bg-white p-5 mt-5 shadow rounded-lg">
+            <form method="POST" action="{% url 'sellers:edit_sale' sale.id %}" id="saleForm">
+                {% csrf_token %}
+
+                {% if request.user.is_superuser or request.user.is_manager %}
+                <div>
+                    <label class="block font-semibold">Select Seller</label>
+                    <select name="seller" id="seller" class="w-full border p-2 rounded-lg mb-3" required>
+                        <option value="" disabled>👤 Select Seller...</option>
+                        {% for seller in sellers %}
+                        <option value="{{ seller.id }}" data-shop="{{ seller.shop.id }}">
+                            {{ seller.username }} ({{ seller.shop.name }})
+                        </option>
+                        {% endfor %}
+                    </select>
+
+                    <label class="block font-semibold">Select Shop</label>
+                    <select name="shop" id="shop" class="w-full border p-2 rounded-lg mb-3" required>
+                        <option value="" disabled>🏬 Select Shop...</option>
+                        {% for shop in shops %}
+                        <option value="{{ shop.id }}">{{ shop.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% else %}
+                <input type="hidden" name="seller" value="{{ sale.seller.id }}">
+                <input type="hidden" name="shop" value="{{ sale.shop.id }}">
+                {% endif %}
+
+                <div>
+                    <label class="block font-semibold">Customer Name</label>
+                    <input type="text" name="customer_name" id="customerName" class="w-full border p-2 rounded-lg mb-3"
+                        required>
+
+                    <label class="block font-semibold">Customer Phone</label>
+                    <input type="text" name="customer_phone" id="customerPhone"
+                        class="w-full border p-2 rounded-lg mb-3" required>
+                </div>
+
+                <div id="sale-items">
+                    {% for item in sale_items %}
+                    <div class="sale-item flex gap-4" data-product-id="{{ item.product.id }}"
+                        data-quantity="{{ item.quantity }}" data-price="{{ item.price_per_piece }}">
+                        <select name="product[]" class="product-select w-full border p-2 rounded-lg mb-3" required>
+                            <option value="" disabled>🔍 Select Product...</option>
+                            {% for product in products %}
+                            <option value="{{ product.id }}" data-price="{{ product.selling_price }}"
+                                data-stock="{{ product.stock }}">
+                                {{ product.name }} (Stock: {{ product.stock }})
+                            </option>
+                            {% endfor %}
+                        </select>
+
+                        <input type="number" name="quantity[]" class="quantity-input w-24 border p-2 rounded-lg mb-3"
+                            required value="{{ item.quantity }}">
+                        <input type="number" name="price_per_piece[]"
+                            class="price-input w-24 border p-2 rounded-lg mb-3" required value="{{ item.price }}">
+                        <input type="text" class="total-amount w-32 border p-2 rounded-lg mb-3 bg-gray-100" readonly
+                            value="{{ item.total_price }}">
+
+                        <button type="button" class="remove-item bg-red-500 text-white px-2 py-1 rounded-lg">❌</button>
+                    </div>
+                    {% endfor %}
+                </div>
+
+
+                <button type="button" id="add-item" class="bg-green-500 text-white px-4 py-2 rounded-lg">➕ Add
+                    Item</button>
+
+                <div class="mt-5">
+                    <label class="block font-semibold">Total Sale Amount</label>
+                    <input type="text" id="grand_total" class="w-full border p-2 rounded-lg mb-3 bg-gray-100" readonly>
+
+                    <label class="block font-semibold">Amount Paid</label>
+                    <input type="number" name="amount_paid" id="amount_paid" class="w-full border p-2 rounded-lg mb-3"
+                        required>
+
+                    <label class="block font-semibold">Balance</label>
+                    <input type="text" id="balance" class="w-full border p-2 rounded-lg mb-3 bg-gray-100" readonly>
+                </div>
+
+                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                    ✅ Update Sale
+                </button>
+                <a href="{% url 'sales:sales_list' %}" class="ml-4 text-gray-600 hover:underline">Cancel</a>
+            </form>
+            {% if sale.payment_status != "paid" %}
+            <button class="btn btn-success" id="mark-paid-btn">Mark as Paid</button>
+            {% endif %}
+
+        </div>
+    </div>
+</div>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        // Autofill general sale details
+        document.getElementById("seller").value = "{{ sale.seller.id }}";
+        document.getElementById("shop").value = "{{ sale.shop.id }}";
+        document.getElementById("customerName").value = "{{ sale.customer_name }}";
+        document.getElementById("customerPhone").value = "{{ sale.customer_phone }}";
+        document.getElementById("amount_paid").value = "{{ sale.amount_paid }}";
+
+        // Ensure existing sale items are correctly filled
+        document.querySelectorAll(".sale-item").forEach(row => {
+            let productSelect = row.querySelector(".product-select");
+            let quantityInput = row.querySelector(".quantity-input");
+            let priceInput = row.querySelector(".price-input");
+            let totalAmount = row.querySelector(".total-amount");
+
+            let productId = row.dataset.productId;
+            let quantity = parseFloat(row.dataset.quantity) || 0;
+            let price = parseFloat(row.dataset.price) || 0;
+
+            console.log(`[DEBUG] Product ID: ${productId}, Qty: ${quantity}, Price: ${price}`);
+
+            // Set the selected product dynamically
+            if (productId) {
+                let optionToSelect = productSelect.querySelector(`option[value='${productId}']`);
+                if (optionToSelect) optionToSelect.selected = true;
+            }
+
+            // Fill quantity and price inputs
+            if (quantity) quantityInput.value = quantity;
+            if (price) priceInput.value = price;
+
+            // Autofill total amount only if not already set
+            if (!totalAmount.value) {
+                totalAmount.value = (quantity * price).toFixed(2);
+            }
+
+            console.log(`[DEBUG] Total Calculated: ${totalAmount.value}`);
+
+            // ✅ Add Return & Damage buttons (ONLY for existing items)
+            if (productId) {
+                let actionButtons = document.createElement("div");
+                actionButtons.classList.add("flex", "gap-2", "mt-1", "items-center");
+
+                // Return to Stock Button
+                let returnStockBtn = document.createElement("button");
+                returnStockBtn.innerHTML = "🔄 Stock";
+                returnStockBtn.classList.add(
+                    "return-stock", "bg-blue-500", "text-white", "px-2", "py-1", "text-sm",
+                    "rounded-md", "hover:bg-blue-600", "transition-all", "shadow-sm"
+                );
+                returnStockBtn.dataset.productId = productId;
+                returnStockBtn.addEventListener("click", function () {
+                    processReturn(productId, "stock", this);
+                });
+
+                // Mark as Damaged Button
+                let markDamagedBtn = document.createElement("button");
+                markDamagedBtn.innerHTML = "❌ Damage";
+                markDamagedBtn.classList.add(
+                    "mark-damaged", "bg-red-500", "text-white", "px-2", "py-1", "text-sm",
+                    "rounded-md", "hover:bg-red-600", "transition-all", "shadow-sm"
+                );
+                markDamagedBtn.dataset.productId = productId;
+                markDamagedBtn.addEventListener("click", function () {
+                    processReturn(productId, "damaged", this);
+                });
+
+                actionButtons.appendChild(returnStockBtn);
+                actionButtons.appendChild(markDamagedBtn);
+                row.appendChild(actionButtons);
+            }
+        });
+
+        // Function to handle returning items
+        function processReturn(productId, returnType, button) {
+            let confirmMsg = returnType === "stock"
+                ? "Are you sure you want to return this item to stock?"
+                : "Are you sure you want to mark this item as damaged?";
+
+            if (!confirm(confirmMsg)) return;
+
+            console.log(`[DEBUG] Processing return - Product ID: ${productId}, Type: ${returnType}`);
+
+            let url = returnType === "stock"
+                ? `/sales/item/return/${productId}/`
+                : `/sales/item/damaged/${productId}/`;
+
+            fetch(url, {
+                method: "POST",
+                headers: {
+                    "X-CSRFToken": "{{ csrf_token }}",
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ product_id: productId })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        button.innerHTML = "✅ Done";
+                        button.classList.add("bg-gray-400");
+                        button.disabled = true;
+                    } else {
+                        alert("Failed to process return.");
+                    }
+                })
+                .catch(error => console.error(`[ERROR] ${error}`));
+        }
+
+        // Function to add a new empty sale item block
+        document.getElementById("add-item").addEventListener("click", function () {
+            const newItem = document.createElement("div");
+            newItem.classList.add("sale-item", "flex", "gap-2", "items-center", "border-b", "pb-2", "mb-2");
+
+            newItem.innerHTML = `
+                <select name="product[]" class="product-select w-40 border p-1 rounded-md text-sm" required>
+                    <option value="" disabled selected>🔍 Select...</option>
+                    {% for product in products %}
+                    <option value="{{ product.id }}" data-price="{{ product.selling_price }}" data-stock="{{ product.stock }}">
+                        {{ product.name }} (Stock: {{ product.stock }})
+                    </option>
+                    {% endfor %}
+                </select>
+
+                <input type="number" name="quantity[]" class="quantity-input w-16 border p-1 rounded-md text-sm" required>
+                <input type="number" name="price_per_piece[]" class="price-input w-16 border p-1 rounded-md text-sm" required>
+                <input type="text" class="total-amount w-20 border p-1 rounded-md bg-gray-100 text-sm" readonly>
+                <button type="button" class="remove-item bg-red-500 text-white px-2 py-1 text-sm rounded-md">❌</button>
+            `;
+
+            document.getElementById("sale-items").appendChild(newItem);
+        });
+
+        // Function to update totals dynamically
+        function updateTotals() {
+            let total = 0;
+            document.querySelectorAll(".total-amount").forEach(input => {
+                total += parseFloat(input.value) || 0;
+            });
+            document.getElementById("grand_total").value = total.toFixed(2);
+            updateBalance();
+        }
+
+        // Function to update balance dynamically
+        function updateBalance() {
+            let total = parseFloat(document.getElementById("grand_total").value) || 0;
+            let paid = parseFloat(document.getElementById("amount_paid").value) || 0;
+            document.getElementById("balance").value = (total - paid).toFixed(2);
+        }
+
+        // Event listener for quantity and price inputs to update totals
+        document.addEventListener("input", function (e) {
+            if (e.target.classList.contains("quantity-input") || e.target.classList.contains("price-input")) {
+                let row = e.target.closest(".sale-item");
+                let quantity = parseFloat(row.querySelector(".quantity-input").value) || 0;
+                let price = parseFloat(row.querySelector(".price-input").value) || 0;
+                row.querySelector(".total-amount").value = (quantity * price).toFixed(2);
+                updateTotals();
+            }
+        });
+
+        document.getElementById("amount_paid").addEventListener("input", updateBalance);
+
+        // Remove sale item dynamically
+        document.addEventListener("click", function (e) {
+            if (e.target.classList.contains("remove-item")) {
+                e.target.closest(".sale-item").remove();
+                updateTotals();
+            }
+        });
+
+        // Initial calculation of totals
+        updateTotals();
+        updateBalance();
+    });
+</script>
+
+
+{% endblock %}
