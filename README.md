@@ -50,47 +50,7 @@ The Shop Management System is a powerful, role-based inventory and sales trackin
 - ✅ Charts & Reports: Chart.js for analytics
 - ✅ Authentication: Django User Model
 
-## 📸 Screenshots  🪄✨
 
-### 🔥 Home Page for login
-![Home Page](static/images/![Screenshot from 2025-02-20 03-15-40](https://github.com/user-attachments/assets/310c296f-f8e7-451b-895b-62868970ded1)
-)
-
-### 📜 manager dashboard
-![Projects Page](static/images/![Screenshot from 2025-02-20 03-18-58](https://github.com/user-attachments/assets/97fc7a69-2720-4c7e-b6c2-a03c1bc82205)
-)
-
-### ✨ reports
-![Contact Page](static/images/![Screenshot from 2025-02-20 03-19-45](https://github.com/user-attachments/assets/1cb3d05b-ced2-43dd-a6b3-49e4fb49f858)
-)
-
-### ✨ reports
-![Contact Page](static/images/![Screenshot from 2025-02-20 03-20-15](https://github.com/user-attachments/assets/6f112588-15fe-4dca-8eb1-1aeab5e0b212)
-)
-
-### ✨ admin dash
-![Contact Page](static/images/![Screenshot from 2025-02-20 03-21-31](https://github.com/user-attachments/assets/093265e4-38d3-4079-bc8a-ad9c40c723ba)
-)
-
-### ✨ admin dash inventory management
-![Contact Page](static/images/![Screenshot from 2025-02-20 03-22-40](https://github.com/user-attachments/assets/1700c9de-d333-46ab-adb9-989e9399da31)
-)
-
-### ✨ admin dash sales management
-![Contact Page](static/images/![Screenshot from 2025-02-20 03-23-57](https://github.com/user-attachments/assets/c594ee09-b114-4995-9ad4-887c9435b723)
-
-
-### ✨ django admin panel
-![Contact Page](static/images/![Screenshot from 2025-02-20 03-26-29](https://github.com/user-attachments/assets/7f6daced-030b-4aa3-a355-bcb3751baa28)
-)
-
-### ✨ users and roles
-![Contact Page](static/images/![Screenshot from 2025-02-20 03-27-12](https://github.com/user-attachments/assets/e32445c3-f3f6-41df-aa09-864c2f51fc63)
-)
-
-### ✨ modify user
-![Contact Page](static/images/![Screenshot from 2025-02-20 03-27-46](https://github.com/user-attachments/assets/f7e91b32-dfd3-47ef-b8a8-7936fbdcc444)
-)
 
 ---
 
