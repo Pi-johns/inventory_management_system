@@ -95,38 +95,6 @@ The Shop Management System is a powerful, role-based inventory and sales trackin
 ---
 
 
-### 🔧 Installation & Setup
-
-## 📜 **How to Install & Run Locally**
-
-```bash
-# Clone the repository
-git clone https://github.com/your-repo/shop-management.git
-cd shop-management
-
-# Create a virtual environment and activate it
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Run database migrations
-python manage.py migrate
-
-# Create a superuser
-python manage.py createsuperuser
-
-# Start the server
-python manage.py runserver
-
-
-```
-
-Now, visit **http://127.0.0.1:8000/** and log in! 🚀  
-
----
-
 ## 🎯 **User Roles & Actions**
 
 | Role         | Actions |
